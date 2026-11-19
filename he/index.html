@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MasTool XR18: איך מערך החזרות עובד</title>
+<style>
+:root{
+  --ink:#16181d;--muted:#5f6672;--line:#d9dde3;--head:#f1f3f6;--accent:#2f6fde;--soft:#eef3fd;
+  --green:#30a46c;--red:#e5484d;--yellow:#f5d90a;--blue:#3e63dd;--magenta:#d6409f;--cyan:#05a2c2;--white:#c9ced6;
+  --warn:#b54708;--warnbg:#fff6ed;--ok:#1a7f4b;--okbg:#ecfaf2;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#1b1d22;color:var(--ink);
+  font:20px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,"Noto Sans Hebrew",sans-serif}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#deck{flex:none;width:1280px;height:720px;position:relative;transform-origin:center center}
+.slide{position:absolute;inset:0;background:#fff;padding:52px 64px 44px;display:none;flex-direction:column;overflow:hidden}
+.slide.active{display:flex}
+.slide h1{font-size:46px;line-height:1.15;margin:0 0 10px}
+.slide h2{font-size:34px;margin:0 0 6px}
+.slide .kicker{color:var(--accent);font-size:16px;font-weight:700;margin-bottom:6px}
+.slide .lead{color:var(--muted);font-size:21px;margin:0 0 20px}
+.slide ul{margin:6px 0;padding-left:0;padding-right:24px}.slide li{margin:5px 0}
+.foot{position:absolute;left:64px;right:64px;bottom:16px;display:flex;justify-content:space-between;color:#9aa1ab;font-size:13px}
+b,strong{font-weight:650}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:36px}
+.cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+.card{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:#fff}
+.card h3{margin:0 0 8px;font-size:21px}
+.card.soft{background:var(--soft);border-color:#d3e0fa}
+.card.warn{background:var(--warnbg);border-color:#f9d6b4}
+.card.ok{background:var(--okbg);border-color:#bfe8d1}
+.note{font-size:17px;color:var(--muted)}
+.small{font-size:16px}
+table{border-collapse:collapse;width:100%;font-size:16px}
+th,td{border:1px solid var(--line);padding:5px 9px;text-align:right;vertical-align:top}
+th{background:var(--head);font-size:13.5px;color:#3b414b}
+td.n{font-weight:700;text-align:center;width:64px;white-space:nowrap}
+.sw{display:inline-block;width:13px;height:13px;border-radius:3px;margin-left:7px;vertical-align:-1px;border:1px solid #0002}
+.big{font-size:60px;font-weight:750;line-height:1;color:var(--accent)}
+kbd{font:14px ui-monospace,Menlo,monospace;background:var(--head);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+code{font:16px ui-monospace,Menlo,monospace;background:var(--head);border-radius:4px;padding:1px 5px}
+code,kbd,.l{direction:ltr;unicode-bidi:isolate}.l{white-space:nowrap}
+.slide.title{background:linear-gradient(225deg,#16181d 0%,#23324f 100%);color:#fff;justify-content:center}
+.slide.title .kicker{color:#8fb3ff}.slide.title h1{font-size:62px}.slide.title .lead{color:#b9c3d6;font-size:25px}
+.slide.section{background:var(--accent);color:#fff;justify-content:center}
+.slide.section h1{font-size:58px}.slide.section .lead{color:#dbe6fb}
+.slide.section .kicker{color:#cfe0ff}
+.strip{display:flex;gap:6px;margin-top:34px}.strip span{flex:1;height:10px;border-radius:3px}
+.flow{display:grid;grid-template-columns:1.05fr 34px 1.25fr 34px 1.15fr 34px 1.1fr;align-items:stretch;margin-top:6px}
+.fcol{display:flex;flex-direction:column;gap:8px}
+.fcol .h{font-size:14px;font-weight:700;color:var(--muted);margin-bottom:2px}
+.box{border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:16px;background:#fff;line-height:1.3}
+.box.hl{background:var(--soft);border-color:#c9d9f8}
+.arrow{display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:28px;font-weight:700}
+.steps{display:flex;gap:12px;margin-top:8px}
+.step{flex:1;border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;font-size:17px}
+.step .num{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:16px}
+.step h4{margin:0 0 4px;font-size:18px}
+.person{display:grid;grid-template-columns:330px 1fr;gap:36px;flex:1}
+.who{align-self:start;border-radius:14px;padding:22px;color:#fff;display:flex;flex-direction:column;gap:10px}
+.who .names{font-size:38px;font-weight:750;line-height:1.15}
+.who .jack{font-size:15px;opacity:.9}
+.who .big2{font-size:30px;font-weight:700}
+.who.dark{color:#16181d}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:6px 14px;font-size:18px}
+.kv div:nth-child(odd){color:var(--muted)}
+.gl{display:grid;grid-template-columns:175px 1fr;gap:5px 12px;font-size:15.5px;line-height:1.35;align-content:start}
+.gl div:nth-child(odd){font-weight:700;direction:ltr;text-align:right;unicode-bidi:isolate}
+.shot{height:540px;border-radius:10px;box-shadow:0 10px 40px #0003;border:1px solid var(--line)}
+svg{direction:ltr}
+svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,"Noto Sans Hebrew",sans-serif}
+svg.rtl text{direction:rtl}
+#hud{position:fixed;right:14px;bottom:10px;color:#8e96a3;font:13px system-ui;user-select:none}
+#bar{position:fixed;right:0;bottom:0;height:3px;background:var(--accent);transition:width .2s}
+#lang{position:fixed;top:10px;left:14px;z-index:10;font:600 13px system-ui;color:#5f6672;background:#ffffffdd;border:1px solid #d9dde3;border-radius:99px;padding:3px 12px;text-decoration:none}
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html,body{background:#fff;height:auto}
+  #stage{position:static;display:block}
+  #deck{transform:none!important;width:auto;height:auto}
+  .slide{display:flex!important;position:relative;width:1280px;height:720px;page-break-after:always;break-after:page}
+  #hud,#bar,#lang{display:none}
+}
+</style>
+</head>
+<body>
+<a id="lang" href="../" lang="en">English</a>
+<div id="stage"><div id="deck">
+
+<!-- 1 -->
+<section class="slide title">
+  <div class="kicker">MasTool · מערך החזרות</div>
+  <h1>ה-XR18, ה-in-ears<br>והאפליקציה שמנהלת אותם</h1>
+  <p class="lead">איך הסאונד זורם, מה כל הגדרה עושה, מה רלוונטי לך,<br>ואיך האפליקציה שומרת על ה-mix של כל אחד.</p>
+  <p class="lead" style="font-size:18px;margin:0">המונחים המקצועיים נשארו באנגלית. ההסבר לכל מונח נמצא במילון בסוף.</p>
+  <div class="strip">
+    <span style="background:var(--green)"></span><span style="background:var(--white)"></span><span style="background:var(--red)"></span>
+    <span style="background:var(--magenta)"></span><span style="background:var(--blue)"></span><span style="background:var(--yellow)"></span>
+    <span style="background:var(--cyan)"></span>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="kicker">למה זה קיים</div>
+  <h2>מבלי in-ears בכלל, לכל אחד עם ה-mix שלו</h2>
+  <p class="lead">עד עכשיו לא היה לנו מערך in-ear monitoring ‏(IEM). עכשיו כל אחד מקבל mix משלו, ישר לאוזניים.</p>
+  <div class="cols">
+    <div class="card warn">
+      <h3>לפני: בלי מערך IEM</h3>
+      <ul>
+        <li>כל אחד שמע מה שהחדר נתן לו</li>
+        <li>קשה לשמוע את עצמך מעל התופים והמגברים</li>
+        <li>מגבירים כדי לשמוע את עצמך, וכולם מגבירים בחזרה</li>
+        <li>בלי talkback, בלי שליטה על מה ששומעים</li>
+      </ul>
+    </div>
+    <div class="card ok">
+      <h3>עכשיו אנחנו יכולים</h3>
+      <ul>
+        <li><b>לשמוע mix משלנו</b>: יותר מעצמך, פחות ממה שלא צריך</li>
+        <li><b>לנגן בשקט יותר</b>: פחות ווליום בחדר, פחות עומס על האוזניים</li>
+        <li><b>לדבר אחד עם השני</b> דרך מיקרופון ה-talkback</li>
+        <li><b>לנגן עם ה-backing track וה-E-Pad</b>: נמצאים בכל mix</li>
+        <li><b>להחליף נגנים בחופשיות</b>: האפליקציה שומרת את ה-mix של כל נגן ומחזירה אותו כשהוא חוזר</li>
+        <li><b>להקליט כל ערוץ</b> ללפטופ דרך USB</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note" style="margin-top:18px">מיקסר: Behringer XR18 ‏(X AIR). אפליקציה: תוכנה קטנה ל-Mac/Windows על הלפטופ, מדברת עם המיקסר דרך ה-Wi-Fi שלו.</p>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="kicker">התמונה הגדולה</div>
+  <h2>איך הסאונד זורם במערך</h2>
+  <div class="flow" style="margin-top:14px">
+    <div class="fcol">
+      <div class="h">1 · מקורות</div>
+      <div class="box"><span class="sw" style="background:var(--green)"></span>בס: מיקרופון cab + שני DI של SansAmp</div>
+      <div class="box"><span class="sw" style="background:var(--red)"></span>גיטרה: 2 מיקרופונים / DI</div>
+      <div class="box"><span class="sw" style="background:var(--magenta)"></span>שירה: 2 מיקרופונים</div>
+      <div class="box"><span class="sw" style="background:var(--yellow)"></span>תופים: kick, snare, 2 overheads</div>
+      <div class="box"><span class="sw" style="background:var(--white)"></span>talkback + 2 מיקרופוני חדר</div>
+      <div class="box"><span class="sw" style="background:var(--cyan)"></span>מחשב (USB) + E-Pad</div>
+    </div>
+    <div class="arrow">←</div>
+    <div class="fcol">
+      <div class="h">2 · ה-channel strip (לכל ערוץ)</div>
+      <div class="box hl"><b>Low-cut</b>: מוריד רעש נמוך (rumble) מתחת לתדר מסוים</div>
+      <div class="box hl"><b>48V</b>: מתח למיקרופוני condenser (overheads, מיקרופוני חדר)</div>
+      <div class="box hl"><b>On/off</b>: תיבות הסימון של הערוצים באפליקציה</div>
+      <div class="box hl"><b>Mute group</b>: משתיק סקשן שלם בבת אחת</div>
+      <div class="box hl"><b>Pan</b>: ‏Gtr 1 שמאל, Gtr 2 ימין, השאר במרכז</div>
+    </div>
+    <div class="arrow">←</div>
+    <div class="fcol">
+      <div class="h">3 · ה-sends ‏(pre-fader)</div>
+      <div class="box">כל ערוץ נשלח ל<b>כל</b> mix בעוצמה משלו</div>
+      <div class="box">רמות ה-send שלך = ה-mix <b>שלך</b>. שינוי אצלך לא נוגע באף אחד אחר</div>
+      <div class="box">האפליקציה שומרת ומחזירה את הרמות האלה לכל נגן</div>
+    </div>
+    <div class="arrow">←</div>
+    <div class="fcol">
+      <div class="h">4 · ה-mixes ל-in-ears</div>
+      <div class="box"><span class="sw" style="background:var(--green)"></span><b><span class="l">Aux 1-2</span></b> בס: אור</div>
+      <div class="box"><span class="sw" style="background:var(--red)"></span><b><span class="l">Aux 3-4</span></b> גיטרה: דן / ג'וני</div>
+      <div class="box"><span class="sw" style="background:var(--magenta)"></span><b><span class="l">Aux 5-6</span></b> שירה: בן / ברק</div>
+      <div class="box"><span class="sw" style="background:var(--yellow)"></span><b>Main L/R</b> תופים: דניאל / נדב</div>
+      <div class="box"><b>USB 1-18</b> ללפטופ: מקליט כל ערוץ גולמי</div>
+    </div>
+  </div>
+  <p class="note" style="margin-top:16px">האפליקציה בלפטופ יושבת מעל כל זה: שולחת פקודות למיקסר דרך ה-Wi-Fi וקוראת בחזרה מה כל אחד שומע.</p>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker">כניסות</div>
+  <h2 style="margin-bottom:10px">מה מחובר לאן</h2>
+  <table style="font-size:15px">
+    <tr><th>ערוץ</th><th>שם</th><th>מה מחובר</th><th>Low-cut</th><th>48V</th><th>Pan / link</th><th>Mute group</th></tr>
+    <tr><td class="n">1</td><td><span class="sw" style="background:var(--green)"></span><b>Bass Cab</b></td><td>‏Sennheiser e609/e906 על ה-cab ‏(dynamic)</td><td><span class="l">50 Hz</span></td><td>-</td><td>C</td><td>4 בס</td></tr>
+    <tr><td class="n">2-3</td><td><span class="sw" style="background:var(--green)"></span><b>Bass DI 1 / 2</b></td><td>שתי היציאות של ה-SansAmp של אור</td><td>כבוי</td><td>-</td><td>C</td><td>4 בס</td></tr>
+    <tr><td class="n">4</td><td><span class="sw" style="background:var(--white)"></span><b>Talkback</b></td><td>מיקרופון talkback</td><td><span class="l">120 Hz</span></td><td>-</td><td>C</td><td>1 Talk &amp; Amb</td></tr>
+    <tr><td class="n">5-6</td><td><span class="sw" style="background:var(--red)"></span><b>Gtr 1 / Gtr 2</b></td><td>מיקרופון / DI לגיטרה 1 ו-2</td><td><span class="l">80 Hz</span></td><td>-</td><td><span class="l">L / R</span> (לא linked)</td><td>3 גיטרה</td></tr>
+    <tr><td class="n">7</td><td><span class="sw" style="background:var(--magenta)"></span><b>Vox 1</b></td><td>מיקרופון שירה ראשי</td><td><span class="l">100 Hz</span></td><td>-</td><td>C</td><td>-</td></tr>
+    <tr><td class="n">8</td><td><span class="sw" style="background:var(--blue)"></span><b>Vox 2</b></td><td>מיקרופון שירה שני (דואטים)</td><td><span class="l">100 Hz</span></td><td>-</td><td>C</td><td>-</td></tr>
+    <tr><td class="n">9</td><td><span class="sw" style="background:var(--yellow)"></span><b>Kick</b></td><td>מיקרופון kick</td><td><span class="l">30 Hz</span></td><td>-</td><td>C</td><td>2 תופים</td></tr>
+    <tr><td class="n">10</td><td><span class="sw" style="background:var(--yellow)"></span><b>Snare</b></td><td>מיקרופון snare</td><td><span class="l">80 Hz</span></td><td>-</td><td>C</td><td>2 תופים</td></tr>
+    <tr><td class="n">11-12</td><td><span class="sw" style="background:var(--yellow)"></span><b>OH L / R</b></td><td>מיקרופוני overhead ‏(condenser)</td><td><span class="l">120 Hz</span></td><td>כן</td><td>linked stereo</td><td>2 תופים</td></tr>
+    <tr><td class="n">13-14</td><td><span class="sw" style="background:var(--cyan)"></span><b>Computer L / R</b></td><td>שום דבר בשקע: מגיע מ-USB 1-2</td><td>כבוי</td><td>-</td><td>linked stereo</td><td>-</td></tr>
+    <tr><td class="n">15-16</td><td><span class="sw" style="background:var(--white)"></span><b>Amb L / R</b></td><td>מיקרופוני חדר (כשיותקנו)</td><td><span class="l">80 Hz</span></td><td>כשדלוק</td><td>linked stereo</td><td>1 Talk &amp; Amb</td></tr>
+    <tr><td class="n">Aux</td><td><span class="sw" style="background:var(--cyan)"></span><b>E-Pad</b></td><td>‏E-Pad L/R ל-Aux In</td><td>-</td><td>-</td><td>stereo</td><td>-</td></tr>
+  </table>
+  <p class="note" style="margin-top:8px;font-size:15.5px"><b>שינוי מדף ה-patch הישן:</b> ה-talkback עבר לערוץ 4, וכל מה שמהגיטרה והלאה זז אחד למעלה. ב-XR18 אפשר לעשות link רק לזוגות אי-זוגי/זוגי (<span class="l">1-2, 3-4 … 15-16</span>), ולכן זוגות ה-stereo נחתו על <span class="l">11-12, 13-14, 15-16</span>.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">יציאות</div>
+  <h2>איזה שקע מזין את ה-in-ears של מי</h2>
+  <div class="cols" style="grid-template-columns:1.25fr 1fr;margin-top:10px">
+    <table>
+      <tr><th>יציאה</th><th>Mix</th><th>מי</th></tr>
+      <tr><td><b><span class="l">Aux 1-2</span></b> stereo</td><td><span class="sw" style="background:var(--green)"></span>בס</td><td>אור</td></tr>
+      <tr><td><b><span class="l">Aux 3-4</span></b> stereo</td><td><span class="sw" style="background:var(--red)"></span>גיטרה</td><td>דן או ג'וני</td></tr>
+      <tr><td><b><span class="l">Aux 5-6</span></b> stereo</td><td><span class="sw" style="background:var(--magenta)"></span>שירה</td><td>בן או ברק</td></tr>
+      <tr><td><b>Aux 5</b> + <b>Aux 6</b> mono</td><td><span class="sw" style="background:var(--magenta)"></span>דואט ("Both")</td><td>‏Aux 5 בן, Aux 6 ברק</td></tr>
+      <tr><td><b>Main L/R</b> stereo</td><td><span class="sw" style="background:var(--yellow)"></span>תופים</td><td>דניאל או נדב</td></tr>
+      <tr><td><b>USB send 1-18</b></td><td>הקלטה</td><td>לפטופ / DAW</td></tr>
+      <tr><td><b>USB return 1-2</b></td><td>backing track</td><td>לערוצים 13-14, כולם שומעים</td></tr>
+    </table>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card soft"><h3>mix אחד לכל תפקיד, לא לכל אדם</h3>יש 4 mixes ל-in-ears. מי שבתפקיד משתמש בשקע הזה. כשהאדם מתחלף, האפליקציה מחליפה את <i>התוכן</i> של ה-mix.</div>
+      <div class="card warn"><h3>Main L/R הוא לא PA</h3>בסטאפ הזה Main L/R הוא <b>ה-in-ears של המתופף</b>. ה-faders של הערוצים קובעים את ה-mix שלו, אז לא משתמשים בהם בתור "mix ראשי".</div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="slide section">
+  <div class="kicker">חלק 1</div>
+  <h1>מה רלוונטי לך</h1>
+  <p class="lead">שקף לכל תפקיד. מצאו את שלכם.</p>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="kicker">בס</div>
+  <div class="person">
+    <div class="who" style="background:var(--green)">
+      <div class="jack">ה-in-ears שלך</div><div class="big2"><span class="l">Aux 1-2</span> · stereo</div>
+      <div class="jack" style="margin-top:12px">נגן</div><div class="names">אור</div>
+      <div class="jack" style="margin-top:12px">הערוצים שלך</div><div class="big2">1 · 2 · 3</div>
+    </div>
+    <div>
+      <h2>אור: שלושה ערוצי בס, מקום קבוע</h2>
+      <div class="kv" style="margin:14px 0 18px">
+        <div>ערוץ 1 Bass Cab</div><div>מיקרופון dynamic על ה-cab (בלי 48V). ‏Low-cut ב-<span class="l">50 Hz</span>: מיקרופון ה-cab נותן גריט ואופי</div>
+        <div>ערוצים 2-3 Bass DI</div><div>שתי היציאות של ה-SansAmp. <b>בלי low-cut</b>: פה נמצא הלואו האמיתי</div>
+        <div>mix התחלתי</div><div>3 הערוצים שלך: <span class="l">0 dB</span> · ‏talkback וחדר: <span class="l">-20 dB</span> · כל השאר: <span class="l">-10 dB</span> · ‏master: <span class="l">-20 dB</span></div>
+        <div>Mute group 4</div><div>משתיק את שלושת ערוצי הבס בכל ה-mixes בבת אחת (כיוון, הפסקות)</div>
+      </div>
+      <div class="card soft small"><b>Hi-Z:</b> כניסות 1-2 ב-XR18 הן תמיד Hi-Z (מובנה בחומרה, אין מתג). זה בסדר גמור למיקרופון ה-cab ול-DI של ה-SansAmp: רק מכוונים gain במיקסר.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker">גיטרה</div>
+  <div class="person">
+    <div class="who" style="background:var(--red)">
+      <div class="jack">ה-in-ears שלך</div><div class="big2"><span class="l">Aux 3-4</span> · stereo</div>
+      <div class="jack" style="margin-top:12px">נגנים</div><div class="names">דן<br>או ג'וני</div>
+      <div class="jack" style="margin-top:12px">הערוצים שלך</div><div class="big2">5 · 6</div>
+    </div>
+    <div>
+      <h2>דן / ג'וני: לכל אחד ה-mix שלו</h2>
+      <div class="kv" style="margin:14px 0 18px">
+        <div>ערוצים 5-6 Gtr 1 / 2</div><div>‏Pan <b>חזק לשמאל / לימין</b>, לא linked. ‏Low-cut ב-<span class="l">80 Hz</span>, ממש מתחת ל-E הנמוך (<span class="l">82 Hz</span>)</div>
+        <div>בהחלפה</div><div>ה-mix הנוכחי של דן נקרא מהמיקסר ונשמר, ואז ה-mix השמור של ג'וני נטען ל-<span class="l">Aux 3-4</span>. מחליפים בחזרה, ושל דן חוזר בדיוק כמו שהיה</div>
+        <div>בפעם הראשונה</div><div>אין עדיין mix שמור, אז מקבלים את ה-mix ההתחלתי: גיטרות <span class="l">0 dB</span> · השאר <span class="l">-10 dB</span> · ‏talkback וחדר <span class="l">-20 dB</span> · ‏master <span class="l">-20 dB</span></div>
+        <div>Mute group 3</div><div>משתיק את שני ערוצי הגיטרה בכל מקום</div>
+      </div>
+      <div class="card soft small">מכוונים את ה-mix כרגיל (X AIR בטלפון או בטאבלט). האפליקציה קולטת כל מה שתגדירו: כל 10 שניות, בכל החלפה, וכשהאפליקציה בלפטופ נסגרת.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="kicker">שירה</div>
+  <div class="person">
+    <div class="who" style="background:var(--magenta)">
+      <div class="jack">ה-in-ears שלך</div><div class="big2"><span class="l">Aux 5-6</span> · stereo</div>
+      <div class="jack">דואט</div><div class="big2" style="font-size:24px">‏Aux 5 בן · Aux 6 ברק<br>(mono לכל אחד)</div>
+      <div class="jack" style="margin-top:8px">נגנים</div><div class="names">בן / ברק / Both</div>
+    </div>
+    <div>
+      <h2>בן / ברק: סולו או דואט</h2>
+      <div class="kv" style="margin:14px 0 16px">
+        <div>זמר אחד</div><div>שר ב-<b>Vox 1 (ערוץ 7)</b>. ערוץ 8 נכבה אוטומטית. ה-mix הוא stereo ב-<span class="l">Aux 5-6</span></div>
+        <div>Both (דואט)</div><div>ערוצים 7 ו-8 דולקים. ‏<span class="l">Aux 5-6</span> עובר ל-<b>unlinked</b>: שני mixes ב-mono, אחד לכל זמר, כך שכל אחד שומע את האיזון שלו</div>
+        <div>אוזניות</div><div>בדואט: <b>בן ב-Aux 5, ברק ב-Aux 6</b>. חוזרים לזמר אחד: ‏5-6 חוזרים ל-link ב-stereo</div>
+        <div>Low-cut</div><div>‏<span class="l">100 Hz</span> בשני המיקרופונים: מוריד רעשי אחיזה, פופים ואת הבום של מיקרופון קרוב</div>
+        <div>Mute groups</div><div>השירה לא נמצאת באף קבוצה: השתקת סקשן אף פעם לא משתיקה את הזמר</div>
+      </div>
+      <div class="card soft small">ה-mix של כל זמר נשמר תחת השם שלו, כך שבן מקבל את האיזון של בן גם בסולו וגם בדואט.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="kicker">תופים</div>
+  <div class="person">
+    <div class="who dark" style="background:var(--yellow)">
+      <div class="jack">ה-in-ears שלך</div><div class="big2">Main L/R · stereo</div>
+      <div class="jack" style="margin-top:12px">נגנים</div><div class="names">דניאל<br>או נדב</div>
+      <div class="jack" style="margin-top:12px">הערוצים שלך</div><div class="big2">9 · 10 · 11 · 12</div>
+    </div>
+    <div>
+      <h2>דניאל / נדב: ה-mix שלכם הוא ה-faders של הערוצים</h2>
+      <div class="kv" style="margin:14px 0 16px">
+        <div>ה-mix שלך</div><div>‏Main L/R, נקבע על ידי <b>ה-faders של הערוצים</b> (כל השאר משתמשים ב-aux sends). אותה שמירה ושחזור בהחלפה</div>
+        <div>Kick (9)</div><div>‏Low-cut ב-<span class="l">30 Hz</span>: רק ה-sub-rumble יורד, כל הבום נשאר</div>
+        <div>Snare (10)</div><div>‏Low-cut ב-<span class="l">80 Hz</span>: מנקה bleed של kick ובס מתחת לסנר</div>
+        <div>OH L/R (11-12)</div><div>מיקרופוני condenser עם 48V, ‏linked stereo, ‏low-cut ב-<span class="l">120 Hz</span>: מצלתיים ותמונת הסט. הלואו מגיע ממיקרופון ה-kick</div>
+        <div>Mute group 2</div><div>משתיק את כל הסט (9-12) בכל ה-mixes</div>
+      </div>
+      <div class="card warn small">מי שמזיז fader של ערוץ ב-X AIR משנה את <b>האוזניים שלכם</b>. בקשו מכולם לגעת רק ב-aux sends שלהם.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="kicker">מי שמפעיל את הלפטופ</div>
+  <h2>התפקיד של המפעיל: לבחור נגנים, להדליק ולכבות, לבדוק</h2>
+  <div class="cols3" style="margin-top:14px">
+    <div class="card"><h3>חיבור</h3>
+      <ul class="small"><li>מתחברים ל-Wi-Fi של ה-XR18</li><li>פותחים את <b>XR18 Rehearsal</b> משולחן העבודה</li><li><b>Find</b> ממלא את כתובת ה-IP של המיקסר (נשמרת)</li><li>הנקודה ליד ה-IP: <span style="color:var(--green)">●</span> המיקסר עונה, <span style="color:var(--red)">●</span> לא עונה (נבדק כל 3 שניות)</li></ul></div>
+    <div class="card"><h3>במהלך החזרה</h3>
+      <ul class="small"><li><b>Who is playing</b>: לוחצים על שם, ההחלפה מיידית</li><li><b>Channels</b>: מסמנים on/off, מופעל מיד</li><li><b>Mute groups</b>: משתיקים סקשן</li><li><b>Undo / Redo</b> <kbd>Cmd/Ctrl+Z</kbd> <kbd>Cmd/Ctrl+Y</kbd>, עד 20 צעדים</li></ul></div>
+    <div class="card"><h3>כשמשהו לא בסדר</h3>
+      <ul class="small"><li><b>Check mixer</b>: מציג הבדלים, לא משנה כלום</li><li><b>Sync &amp; check</b>: מתקן רק מה ששונה</li><li><b>Set up mixer…</b>: כותב מחדש את כל הסטאפ (שואל קודם)</li><li>מעבירים את העכבר מעל כל דבר כדי לקבל tooltip</li></ul></div>
+  </div>
+  <div class="card soft small" style="margin-top:18px">בסוף סוגרים את האפליקציה כרגיל: היא לוקחת snapshot אחרון של ה-mix של כולם. אם המיקסר כבר כבוי, היא נסגרת מיד ושומרת את השמירה הטובה האחרונה.</div>
+</section>
+
+<!-- 12 -->
+<section class="slide section">
+  <div class="kicker">חלק 2</div>
+  <h1>פילטרים: low-cut, high-cut,<br>high-pass, low-pass</h1>
+  <p class="lead">ארבעה שמות, שני רעיונות. ולמה לכל ערוץ יש את המספר שלו.</p>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="kicker">פילטרים 101</div>
+  <h2>השם אומר מה <i>עובר</i></h2>
+  <div class="cols" style="margin-top:10px">
+    <div>
+      <h3 style="margin:0 0 2px">High-pass = Low-cut</h3>
+      <div class="note">הגבוהים <b>עוברים</b>, הנמוכים <b>נחתכים</b>. בשימוש ב-12 מהערוצים שלנו.</div>
+      <svg id="hpf" viewBox="0 0 560 250" width="560" height="250"></svg>
+    </div>
+    <div>
+      <h3 style="margin:0 0 2px">Low-pass = High-cut</h3>
+      <div class="note">הנמוכים <b>עוברים</b>, הגבוהים <b>נחתכים</b>. האפליקציה לא מגדירה אף אחד.</div>
+      <svg id="lpf" viewBox="0 0 560 250" width="560" height="250"></svg>
+    </div>
+  </div>
+  <div class="cols" style="margin-top:6px">
+    <div class="small"><b>Cutoff</b>: התדר שבו הפילטר מתחיל לעבוד (בערך <span class="l">3 dB</span> למטה). זה לא קיר: מתחתיו העוצמה <b>יורדת בהדרגה</b>, יותר ככל שמתרחקים.</div>
+    <div class="small"><b>שימושים</b>: להוריד רחש מ-DI של בס, ‏bleed של מצלתיים ממיקרופון kick, צורמנות ממקור בהיר. אם נצטרך, עושים את זה ידנית ב-EQ של X AIR Edit.</div>
+  </div>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="kicker">פילטרים בערוצים שלנו</div>
+  <h2>איפה כל כלי נמצא, ואיפה אנחנו חותכים</h2>
+  <p class="note" style="margin:0 0 4px">הפסים = בערך איפה שנמצא הסאונד השימושי. <span style="color:#d64545;font-weight:650">הצללה אדומה</span> = מה שה-low-cut מוריד. סקאלה לוגריתמית, כמו האוזן.</p>
+  <svg id="ranges" viewBox="0 0 1150 520" width="1150" height="520"></svg>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="kicker">למה המספרים האלה</div>
+  <h2>לכל low-cut יש סיבה</h2>
+  <div class="cols" style="grid-template-columns:1.45fr 1fr;gap:28px;margin-top:8px">
+    <table style="font-size:15.5px">
+      <tr><th>ערוץ</th><th>Cut</th><th>למה</th></tr>
+      <tr><td>Kick</td><td><span class="l">30 Hz</span></td><td>רק sub-rumble שאף אחד לא שומע. הבום (<span class="l">50-100 Hz</span>) נשאר</td></tr>
+      <tr><td>Bass Cab</td><td><span class="l">50 Hz</span></td><td>הלואו מגיע מה-DIs. מיקרופון ה-cab מוסיף גריט</td></tr>
+      <tr><td>Bass DI 1-2</td><td>כבוי</td><td>הבסיס. ה-E הנמוך הוא <span class="l">41 Hz</span>, שומרים על הכול</td></tr>
+      <tr><td>Gtr 1-2</td><td><span class="l">80 Hz</span></td><td>התו הכי נמוך בגיטרה הוא <span class="l">82 Hz</span>. מתחת יש רק בוץ ו-bleed של בס</td></tr>
+      <tr><td>Snare</td><td><span class="l">80 Hz</span></td><td>הגוף הוא <span class="l">150-250 Hz</span>. מתחת זה bleed של kick ובס</td></tr>
+      <tr><td>Amb L/R</td><td><span class="l">80 Hz</span></td><td>‏rumble של החדר, מזגן, צעדים</td></tr>
+      <tr><td>Vox 1-2</td><td><span class="l">100 Hz</span></td><td>רעשי אחיזה, פופים, הבום של מיקרופון קרוב</td></tr>
+      <tr><td>Talkback</td><td><span class="l">120 Hz</span></td><td>דיבור צריך להיות ברור, לא מלא</td></tr>
+      <tr><td>OH L/R</td><td><span class="l">120 Hz</span></td><td>‏Overheads = מצלתיים + תמונת הסט. מיקרופון ה-kick עושה את הלואו</td></tr>
+      <tr><td>Computer, E-Pad</td><td>כבוי</td><td>מקורות מעורבבים ומלאים, בלי rumble מהבמה</td></tr>
+    </table>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card soft"><h3>למה זה חשוב יותר ב-in-ears</h3><span class="small">‏rumble נמוך מכל מיקרופון פתוח מצטבר. את רובו לא שומעים, אבל הוא אוכל headroom, מעכיר את ה-mix ומעייף את האוזניים. כשחותכים אותו אפשר לשמוע הכול בווליום <b>נמוך</b> יותר.</span></div>
+      <div class="card"><h3>כלל אצבע</h3><span class="small">חותכים קצת מתחת לתו הכי נמוך שהמקור באמת מנגן. ככל שיותר מיקרופונים חולקים טווח, יותר משתלם לנקות אותו.</span></div>
+      <div class="note small">טווח ה-low-cut במיקסר הוא <span class="l">20-400 Hz</span>. האפליקציה כותבת את הערכים האלה ב-<b>Set up mixer</b> ובודקת אותם ב-<b>Check mixer</b>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 16 -->
+<section class="slide section">
+  <div class="kicker">חלק 3</div>
+  <h1>איך הכול מנוהל</h1>
+  <p class="lead">‏Sends, החלפות, שמירה, מתגים, הקלטה ורשתות ביטחון.</p>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <div class="kicker">Pre-fader sends</div>
+  <h2>למה ה-mix שלך שייך רק לך</h2>
+  <div class="cols" style="margin-top:12px">
+    <div>
+      <svg class="rtl" viewBox="0 0 540 330" width="540" height="330">
+        <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2f6fde"/></marker></defs>
+        <rect x="10" y="135" width="120" height="60" rx="9" fill="#fff" stroke="#d9dde3"/><text x="70" y="160" text-anchor="middle" font-size="16" font-weight="650">Gtr 1 (ערוץ 5)</text><text x="70" y="180" text-anchor="middle" font-size="13" fill="#5f6672">אחרי ה-low-cut</text>
+        <circle cx="190" cy="165" r="7" fill="#2f6fde"/><text x="190" y="150" text-anchor="middle" font-size="12" fill="#5f6672">tap: PRE</text>
+        <line x1="130" y1="165" x2="183" y2="165" stroke="#2f6fde" stroke-width="2.5"/>
+        <g font-size="15">
+          <path d="M190,165 C240,165 240,40 300,40" fill="none" stroke="#2f6fde" stroke-width="2.5" marker-end="url(#ah)"/>
+          <path d="M190,165 C240,165 240,110 300,110" fill="none" stroke="#2f6fde" stroke-width="2.5" marker-end="url(#ah)"/>
+          <path d="M190,165 C240,165 240,180 300,180" fill="none" stroke="#2f6fde" stroke-width="2.5" marker-end="url(#ah)"/>
+          <rect x="305" y="20" width="220" height="40" rx="8" fill="#ecfaf2" stroke="#bfe8d1"/><text x="415" y="45" text-anchor="middle">ה-send של אור · Aux 1-2</text>
+          <rect x="305" y="90" width="220" height="40" rx="8" fill="#fdeeee" stroke="#f4c6c7"/><text x="415" y="115" text-anchor="middle">ה-send של דן · Aux 3-4</text>
+          <rect x="305" y="160" width="220" height="40" rx="8" fill="#fbeef6" stroke="#f0c3de"/><text x="415" y="185" text-anchor="middle">ה-send של בן · Aux 5-6</text>
+          <line x1="190" y1="172" x2="190" y2="245" stroke="#9aa1ab" stroke-width="2.5" stroke-dasharray="5 4"/>
+          <rect x="120" y="250" width="140" height="44" rx="8" fill="#fffbe0" stroke="#efe08a"/><text x="190" y="271" text-anchor="middle">ה-fader של הערוץ</text><text x="190" y="287" text-anchor="middle" font-size="12" fill="#5f6672">= ה-mix של המתופף</text>
+          <path d="M260,272 L300,272" stroke="#9aa1ab" stroke-width="2.5" marker-end="url(#ah)"/>
+          <rect x="305" y="252" width="220" height="40" rx="8" fill="#fffbe0" stroke="#efe08a"/><text x="415" y="277" text-anchor="middle">Main L/R · דניאל</text>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <ul>
+        <li>לכל ערוץ יש <b>רמת send</b> נפרדת לכל mix</li>
+        <li>ה-sends נלקחים <b>pre-fader</b>: הזזת ה-fader של הערוץ <b>לא</b> משנה את מה ששומעים אור, דן או בן</li>
+        <li>ה-mix של המתופף הוא המסלול של ה-fader עצמו (Main L/R)</li>
+        <li>לכל mix יש גם <b>master</b> משלו</li>
+        <li>מה שהאפליקציה זוכרת לכל נגן: הרמה של כל 17 הכניסות ב-mix שלו, ועוד ה-master</li>
+      </ul>
+      <div class="card soft small" style="margin-top:12px">הערוצים של כל נגן מתחילים ב-<span class="l">0 dB</span>, כך שקודם כול שומעים את עצמך. כל השאר מתחיל מ-<span class="l">-10 dB</span> מתחת, ו-talkback ומיקרופוני חדר מ-<span class="l">-20 dB</span>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 18 -->
+<section class="slide">
+  <div class="kicker">ההחלפה</div>
+  <h2>מה קורה כשלוחצים על "Jonny"</h2>
+  <div class="steps" style="margin-top:16px">
+    <div class="step"><div class="num">1</div><h4>קריאה</h4>האפליקציה מבקשת מהמיקסר את הרמות הנוכחיות של דן ב-<span class="l">Aux 3-4</span>: <span class="l">17 sends + master</span></div>
+    <div class="step"><div class="num">2</div><h4>שמירה</h4>נשמר תחת "Dan" בקובץ ה-state בלפטופ</div>
+    <div class="step"><div class="num">3</div><h4>הנמכה</h4>ה-master של <span class="l">Aux 3-4</span> יורד קודם לשקט, כך ששום דבר לא מתפוצץ בזמן שהרמות משתנות</div>
+    <div class="step"><div class="num">4</div><h4>טעינה</h4>ה-sends השמורים של ג'וני נכתבים (או ה-mix ההתחלתי, אם הוא חדש)</div>
+    <div class="step"><div class="num">5</div><h4>החזרה</h4>ה-master עולה חזרה לרמה השמורה של ג'וני</div>
+  </div>
+  <div class="cols" style="margin-top:22px">
+    <div class="card ok"><h3>רק התפקיד הזה מושפע</h3>אור, הזמר והמתופף לא שומעים שום שינוי. ה-sends שלהם לא נכתבים.</div>
+    <div class="card warn"><h3>אם המיקסר לא עונה</h3>ה-mix של דן <b>לא</b> נדרס בכלום. ההחלפה מסומנת <i>pending</i>, וה-mix של ג'וני נטען ברגע שהמיקסר עונה שוב (נבדק כל 10 שניות).</div>
+  </div>
+</section>
+
+<!-- 19 -->
+<section class="slide">
+  <div class="kicker">שמירה וזיכרון</div>
+  <h2>אין כפתור Save. אף פעם.</h2>
+  <div class="cols3" style="margin-top:12px">
+    <div class="card"><div class="big"><span class="l">10 s</span></div><h3 style="margin-top:8px">Autosave</h3><span class="small">כל 10 שניות האפליקציה קוראת מה כל נגן פעיל שומע ושומרת. משנים את ה-mix, והוא נשמר.</span></div>
+    <div class="card"><div class="big">20</div><h3 style="margin-top:8px">צעדי Undo</h3><span class="small">החלפות נגנים ומתגי ערוצים אפשר לבטל ולשחזר עד 20 צעדים אחורה. נשמר גם אחרי הפעלה מחדש.</span></div>
+    <div class="card"><div class="big">1</div><h3 style="margin-top:8px">קובץ אחד בלפטופ</h3><span class="small"><code>~/.xr18-rehearsal/state.json</code>: כתובת המיקסר, ההרכב, ה-mix של כל נגן, המתגים, היסטוריית ה-undo. נכתב בצורה בטוחה: קריסה לא יכולה להשאיר קובץ חצי כתוב.</span></div>
+  </div>
+  <div class="cols" style="margin-top:18px">
+    <div class="small"><b>מה נשמר:</b> רמות ה-mix לכל נגן, ההרכב, on/off של ערוצים, ‏mute groups, מתג הקלטת ה-USB, כתובת ה-IP של המיקסר.</div>
+    <div class="small"><b>יש גם log</b> (<code>xr18-rehearsal.log</code>) של כל פקודה שנשלחה. שימושי לשלוח לדן אם משהו מתנהג מוזר.</div>
+  </div>
+</section>
+
+<!-- 20 -->
+<section class="slide">
+  <div class="kicker">מתגים</div>
+  <h2>On/off לערוצים, מתח למיקרופוני החדר ו-mute groups</h2>
+  <div class="cols3" style="margin-top:12px">
+    <div class="card"><h3>תיבות הסימון של הערוצים</h3><span class="small">אחת לכל ערוץ, מופעלת מיד, אפשר לבטל. <b>Revert to default</b> מדליק את כולם. בחירת זמר אחד מכבה את ערוץ 8; ‏"Both" מדליק את 7 ו-8.</span></div>
+    <div class="card"><h3>מיקרופוני החדר (15-16) ו-48V</h3><span class="small">הם condenser וצריכים 48V. כדי למנוע <b>פיצוץ באוזניים</b>:<br><b>הדלקה:</b> ‏48V דולק ← מחכים 2 שניות ← unmute<br><b>כיבוי:</b> ‏mute ← ‏48V כבוי</span></div>
+    <div class="card"><h3>Mute groups</h3><span class="small">משתיקים סקשן בכל ה-mixes בבת אחת, בלי לגעת בתיבות הסימון. מבטלים את ההשתקה, והכול חוזר בדיוק כמו שהיה.</span></div>
+  </div>
+  <table style="margin-top:18px">
+    <tr><th>קבוצה</th><th>משתיקה</th><th>ערוצים</th><th>שימוש נפוץ</th></tr>
+    <tr><td>1</td><td>Talkback &amp; Amb</td><td><span class="l">4, 15-16</span></td><td>להשתיק דיבורים ורעשי חדר</td></tr>
+    <tr><td>2</td><td>תופים</td><td>9-12</td><td>החלפת מתופף, מקלות מקישים</td></tr>
+    <tr><td>3</td><td>גיטרה</td><td>5-6</td><td>כיוון, משחקים עם פדלים</td></tr>
+    <tr><td>4</td><td>בס</td><td>1-3</td><td>כיוון, החלפת כבלים</td></tr>
+  </table>
+</section>
+
+<!-- 21 -->
+<section class="slide">
+  <div class="kicker">מצב דואט</div>
+  <h2>שני זמרים, שני mixes נפרדים</h2>
+  <div class="cols" style="margin-top:14px;align-items:center">
+    <svg class="rtl" viewBox="0 0 540 300" width="540" height="300">
+      <g font-size="16">
+        <g transform="translate(270,0)">
+          <text x="135" y="24" text-anchor="middle" font-weight="700" fill="#5f6672" font-size="14">זמר אחד</text>
+          <rect x="35" y="40" width="200" height="56" rx="10" fill="#fbeef6" stroke="#f0c3de"/><text x="135" y="65" text-anchor="middle" font-weight="650">Aux 5-6 linked</text><text x="135" y="84" text-anchor="middle" font-size="13" fill="#5f6672">mix אחד ב-stereo</text>
+          <line x1="135" y1="96" x2="135" y2="140" stroke="#d6409f" stroke-width="3"/>
+          <rect x="55" y="140" width="160" height="44" rx="22" fill="#d6409f"/><text x="135" y="168" text-anchor="middle" fill="#fff" font-weight="650">בן או ברק</text>
+          <text x="135" y="220" text-anchor="middle" font-size="14" fill="#5f6672">מיקרופון: Vox 1 (ערוץ 7)</text>
+          <text x="135" y="240" text-anchor="middle" font-size="14" fill="#5f6672">ערוץ 8 כבוי</text>
+        </g>
+        <g transform="translate(-270,0)">
+          <text x="405" y="24" text-anchor="middle" font-weight="700" fill="#5f6672" font-size="14">Both</text>
+          <rect x="410" y="40" width="95" height="56" rx="10" fill="#fbeef6" stroke="#f0c3de"/><text x="457" y="65" text-anchor="middle" font-weight="650">Aux 5</text><text x="457" y="84" text-anchor="middle" font-size="13" fill="#5f6672">mono</text>
+          <rect x="305" y="40" width="95" height="56" rx="10" fill="#eef1fc" stroke="#c9d2f5"/><text x="352" y="65" text-anchor="middle" font-weight="650">Aux 6</text><text x="352" y="84" text-anchor="middle" font-size="13" fill="#5f6672">mono</text>
+          <line x1="457" y1="96" x2="457" y2="140" stroke="#d6409f" stroke-width="3"/><line x1="352" y1="96" x2="352" y2="140" stroke="#3e63dd" stroke-width="3"/>
+          <rect x="415" y="140" width="85" height="44" rx="22" fill="#d6409f"/><text x="457" y="168" text-anchor="middle" fill="#fff" font-weight="650">בן</text>
+          <rect x="310" y="140" width="85" height="44" rx="22" fill="#3e63dd"/><text x="352" y="168" text-anchor="middle" fill="#fff" font-weight="650">ברק</text>
+          <text x="405" y="220" text-anchor="middle" font-size="14" fill="#5f6672">מיקרופונים: ערוצים 7 ו-8 דולקים</text>
+          <text x="405" y="240" text-anchor="middle" font-size="14" fill="#5f6672">לכל זמר ה-mix השמור שלו</text>
+        </g>
+      </g>
+    </svg>
+    <div>
+      <ul>
+        <li>בוחרים <b>Both</b> תחת Vocals: ‏<span class="l">Aux 5-6</span> עובר ל-unlinked, ערוץ 8 נדלק, ה-mix של בן נטען ל-Aux 5 ושל ברק ל-Aux 6</li>
+        <li><b>פיזית:</b> ה-in-ear pack של בן ב-Aux 5, של ברק ב-Aux 6</li>
+        <li>בוחרים שוב שם אחד: ‏5-6 חוזרים ל-link ב-stereo, וה-mix של אותו זמר נטען</li>
+        <li>הרמות של כל זמר נשמרות תחת השם שלו ועוברות איתו בין סולו לדואט</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 22 -->
+<section class="slide">
+  <div class="kicker">הקלטה</div>
+  <h2>כל ערוץ, ישר ללפטופ דרך USB</h2>
+  <div class="cols" style="margin-top:12px">
+    <div>
+      <ul>
+        <li>ה-XR18 הוא כרטיס קול USB עם 18 כניסות ו-18 יציאות. אין לו הקלטה לדיסק און קי, אז מקליטים ל-DAW (<span class="l">Reaper, Logic, Ableton, Audacity…</span>)</li>
+        <li><b>Record all inputs via USB</b> (דולק כברירת מחדל): ‏USB 1-16 נושאים את 16 הכניסות, ‏17-18 את ה-E-Pad</li>
+        <li>מוקלט <b>גולמי</b>, לפני כל פילטר, כך שאפשר למקסס אחר כך איך שרוצים</li>
+        <li>מורידים את הסימון כדי לקבוע את ניתוב ה-USB ידנית ב-X AIR Edit</li>
+        <li>ב-Windows צריך את ה-driver של Behringer X-USB ASIO. ב-Mac זה עובד ישר</li>
+      </ul>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card warn"><h3>המלכודת: ה-backing track</h3><span class="small">ערוצים 13-14 מנגנים את המחשב דרך USB return 1-2. ‏USB sends 13-14 עדיין נושאים את שקעי הכניסה 13-14, <b>הריקים</b>. כדי שה-backing track יהיה בהקלטה, מקליטים את הניגון מהמחשב בתוך ה-DAW עצמו.</span></div>
+      <div class="card soft"><h3>נשאר במקום</h3><span class="small">אם מישהו משנה את ניתוב ה-USB ב-X AIR Edit, ‏<b>Check mixer</b> מסמן את זה ו-<b>Sync &amp; check</b> מחזיר.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 23 -->
+<section class="slide">
+  <div class="kicker">האפליקציה</div>
+  <div style="display:grid;grid-template-columns:400px 1fr;gap:40px;align-items:start">
+    <img class="shot" src="../rehearsal-control-mac.png" alt="חלון האפליקציה">
+    <div>
+      <h2>חלון אחד, מלמעלה למטה</h2>
+      <div class="kv" style="grid-template-columns:150px 1fr;margin-top:12px;font-size:17px">
+        <div>Mixer IP + נקודה</div><div>איפה המיקסר, והאם הוא עונה</div>
+        <div>Who is playing</div><div>בחירת נגנים. לחיצה = שמירת ה-mix הישן וטעינת החדש</div>
+        <div>Channels</div><div>‏on/off לכל ערוץ בצבעים, אותם צבעים כמו במיקסר</div>
+        <div>Mute groups</div><div><span class="l">Talkback &amp; Amb · Drums · Guitar · Bass</span></div>
+        <div>Outputs</div><div>איזה שקע נושא את ה-mix של מי עכשיו + מתג הקלטת USB</div>
+        <div>כפתורים</div><div><span class="l">Undo · Redo · Set up mixer… · Sync &amp; check · Check mixer</span></div>
+        <div>אזור הודעות</div><div>מה קרה עכשיו, במילים פשוטות</div>
+      </div>
+      <p class="note small" style="margin-top:14px">כל התקשורת עם המיקסר רצה ברקע, כך שהחלון לא נתקע אף פעם, גם אם המיקסר איטי או מחוץ לטווח.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 24 -->
+<section class="slide">
+  <div class="kicker">שלושה כפתורים, שלוש משימות</div>
+  <h2>Set up מול Sync מול Check</h2>
+  <table style="margin-top:14px;font-size:17px">
+    <tr><th style="width:190px">כפתור</th><th>מה הוא עושה</th><th style="width:240px">נוגע ב-mixes?</th><th style="width:200px">מתי</th></tr>
+    <tr><td><b>Check mixer</b></td><td>קורא בחזרה כל הגדרה (שמות, צבעים, links, ניתוב, 48V, ‏low-cuts, ‏pans, ‏taps, ‏mute groups) ומציג מה שונה</td><td>לא. לא משנה כלום</td><td>בתחילת כל חזרה</td></tr>
+    <tr><td><b>Sync &amp; check</b></td><td>אותה קריאה, ואז כותב <b>רק</b> את הערכים ששונים, ובודק שוב</td><td>לא. ה-mixes וה-faders לא נוגעים</td><td>כש-Check מצא משהו</td></tr>
+    <tr><td><b>Set up mixer…</b></td><td>כותב את <b>כל</b> הסטאפ, ואז טוען את ה-mixes השמורים של ההרכב הנוכחי. שואל קודם</td><td>כן. טוען מחדש את ה-mixes של הנגנים הנוכחיים</td><td>בפעם הראשונה, או אחרי איפוס של המיקסר</td></tr>
+  </table>
+  <div class="cols" style="margin-top:22px">
+    <div class="card soft small"><b>ביום-יום לא צריך Set up.</b> בחירת נגנים, תיבות סימון ו-mute groups מגיעים למיקסר ברגע שלוחצים.</div>
+    <div class="card small"><b>איך נראה "drift":</b> מישהו משנה שם של ערוץ או מדליק 48V ב-X AIR Edit. ‏Check מציג את זה, ‏Sync מחזיר.</div>
+  </div>
+</section>
+
+<!-- 25 -->
+<section class="slide">
+  <div class="kicker">רשתות ביטחון</div>
+  <h2>בנוי כך שאף אחד לא יחטוף פיצוץ באוזניים</h2>
+  <table style="margin-top:12px;font-size:17px">
+    <tr><th style="width:320px">מצב</th><th>מה האפליקציה עושה</th></tr>
+    <tr><td>טעינת mix</td><td>‏master לשקט ← sends ← ‏master עולה לרמה השמורה. בלי פיצוץ ברמה הישנה</td></tr>
+    <tr><td>מיקרופוני חדר on / off</td><td>‏48V קודם, 2 שניות להתייצבות, ואז unmute. כיבוי: ‏mute, ואז 48V כבוי. בלי פופ</td></tr>
+    <tr><td>זוגות stereo עם link</td><td>ה-pan נקבע רק בערוץ האי-זוגי ונשאר במרכז (הוא עובד כ-balance), כך שה-stereo נשאר stereo</td></tr>
+    <tr><td>המיקסר לא עונה בזמן החלפה</td><td>ה-mix הישן לא נדרס, וה-mix החדש נטען אוטומטית כשהמיקסר חוזר</td></tr>
+    <tr><td>המיקסר כבוי כשסוגרים את האפליקציה</td><td>נסגרת מיד ושומרת את השמירה הטובה האחרונה</td></tr>
+    <tr><td>Set up מלא</td><td>מבקש אישור קודם: הוא מאפס שמות, ניתוב ורמות</td></tr>
+    <tr><td>משהו קורס ברקע</td><td>החלון מציג את השגיאה, והפרטים המלאים נכנסים לקובץ ה-log</td></tr>
+  </table>
+</section>
+
+<!-- 26 -->
+<section class="slide">
+  <div class="kicker">מתחת למכסה המנוע (לסקרנים)</div>
+  <h2>איך האפליקציה מדברת עם המיקסר</h2>
+  <div class="cols" style="margin-top:10px">
+    <div>
+      <ul class="small">
+        <li><b>OSC על UDP, פורט 10024</b>: אותו פרוטוקול שליטה שאפליקציות X AIR משתמשות בו. הודעה נראית כך: <code>/ch/05/mix/03/level 0.75</code></li>
+        <li><b>Find</b> שולח broadcast של <code>/xinfo</code>; המיקסר עונה עם IP, שם, דגם וגרסת קושחה</li>
+        <li>ה-faders עוברים ברשת כערכים בין 0 ל-1; האפליקציה ממירה מ-dB ובחזרה לפי עקומת ה-fader של X-Air</li>
+        <li>הפקודות נשלחות ברווח של <span class="l">2 ms</span> כדי לא להציף את המיקסר</li>
+        <li>‏thread אחד ברקע עושה את כל התקשורת עם המיקסר, והחלון נשאר זמין</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="small">
+        <li><b>Python, ספרייה סטנדרטית בלבד</b>: אין מה להתקין בלפטופ חוץ מ-Python עצמו</li>
+        <li>כל הסטאפ יושב בקובץ אחד (<code>plan.py</code>) כנתונים. דף ה-patch ומפת הסטאפ נוצרים ממנו</li>
+        <li><b>סימולטור של XR18</b> לבדיקות בלי החומרה</li>
+        <li>הבדיקות רצות על Mac, ‏Windows ו-Linux בכל שינוי (GitHub Actions)</li>
+        <li>יש גם command line: <span class="l"><code>--find</code>, <code>apply</code>, <code>check</code>, <code>lineup</code>, <code>--dry-run</code></span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="card soft small" style="margin-top:14px">קובץ התוכנית ← פקודות ← מיקסר. ‏Check מריץ את אותה רשימה כשאלות במקום כפקודות, ולכן Check ו-Set up אף פעם לא חלוקים על מה נחשב "נכון".</div>
+</section>
+
+<!-- 27 -->
+<section class="slide">
+  <div class="kicker">גבולות</div>
+  <h2>במה האפליקציה לא נוגעת</h2>
+  <div class="cols" style="margin-top:12px">
+    <div class="card"><h3>עדיין ידני (X AIR Edit / הרק)</h3>
+      <ul class="small">
+        <li><b>Gain</b> בכל preamp: מכוונים רמות במיקסר</li>
+        <li><b>EQ, compression, gate, אפקטים</b>: לא נוגעת</li>
+        <li><b>Hi-Z</b> בכניסות 1-2: תמיד דולק בחומרה, אין מה להגדיר</li>
+        <li><b>כבלים</b>: האפליקציה לא רואה אותם. משתמשים בדף ה-patch</li>
+        <li>כפתור הווליום ב-in-ear pack שלך</li>
+      </ul></div>
+    <div class="card"><h3>לא נשמר לכל נגן</h3>
+      <ul class="small">
+        <li>רק <b>רמות</b> נשמרות לכל נגן (17 כניסות + master)</li>
+        <li>ה-pans הם חלק מהסטאפ הקבוע, אותו דבר לכולם</li>
+        <li>‏EQ על bus משותף לכל מי שנמצא בתפקיד</li>
+      </ul></div>
+  </div>
+  <p class="note" style="margin-top:16px">כלל לכולם: <b>נוגעים רק ב-aux sends שלך</b>. ה-faders של הערוצים הם ה-mix של המתופף; הגדרות הערוצים הן הסטאפ המשותף.</p>
+</section>
+
+<!-- 28 -->
+<section class="slide">
+  <div class="kicker">יום חזרה</div>
+  <h2>צ'קליסט</h2>
+  <div class="cols" style="margin-top:10px">
+    <div>
+      <div class="steps" style="flex-direction:column;gap:9px;margin-top:0">
+        <div class="step" style="padding:10px 14px"><b>1 ·</b> מחברים לפי דף ה-patch: ‏talkback ב-4, שקעים 13-14 ריקים</div>
+        <div class="step" style="padding:10px 14px"><b>2 ·</b> הלפטופ על ה-Wi-Fi של ה-XR18, פותחים את האפליקציה, נקודה ירוקה</div>
+        <div class="step" style="padding:10px 14px"><b>3 ·</b> <b>Check mixer</b>. רשימה ריקה = טוב. אחרת <b>Sync &amp; check</b></div>
+        <div class="step" style="padding:10px 14px"><b>4 ·</b> מגדירים את ההרכב של היום ב-<b>Who is playing</b></div>
+        <div class="step" style="padding:10px 14px"><b>5 ·</b> מיקרופוני החדר מחוברים? מסמנים 15-16</div>
+      </div>
+    </div>
+    <div>
+      <div class="steps" style="flex-direction:column;gap:9px;margin-top:0">
+        <div class="step" style="padding:10px 14px"><b>6 ·</b> ‏Gain מכוון בכל כניסה (X AIR Edit)</div>
+        <div class="step" style="padding:10px 14px"><b>7 ·</b> המחשב מוציא ל-USB 1-2; ה-backing track במרכז וב-stereo</div>
+        <div class="step" style="padding:10px 14px"><b>8 ·</b> מקליטים? ‏DAW עם ה-XR18 ככרטיס קול, 18 כניסות</div>
+        <div class="step" style="padding:10px 14px"><b>9 ·</b> מנגנים. מחליפים בחופשיות. משנים רק את ה-sends שלכם</div>
+        <div class="step" style="padding:10px 14px"><b>10 ·</b> בסוף סוגרים את האפליקציה כרגיל</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 29 -->
+<section class="slide">
+  <div class="kicker">סטטוס</div>
+  <h2>איפה זה עומד</h2>
+  <div class="cols" style="margin-top:12px">
+    <div class="card ok"><h3>מוכן</h3>
+      <ul class="small">
+        <li>החלפת נגנים עם mixes שמורים, מצב דואט, ‏undo/redo</li>
+        <li>מתגי ערוצים, סדר ה-48V למיקרופוני החדר, ‏mute groups</li>
+        <li>ניתוב הקלטה ב-USB</li>
+        <li>‏Check / Sync / Set up, נקודת חיבור, קובץ log</li>
+        <li>קיצורי דרך לשולחן העבודה ב-Mac וב-Windows</li>
+        <li>נבדק מול XR18 מדומה בשלוש מערכות ההפעלה</li>
+      </ul></div>
+    <div class="card warn"><h3>עוד לעשות (צריך את המיקסר האמיתי)</h3>
+      <ul class="small">
+        <li>חיבור אמיתי ראשון: מריצים <b>Check mixer</b> ומתקנים כל כתובת שהקושחה האמיתית דוחה</li>
+        <li>מחליפים גיטריסט ובחזרה, ומוודאים שה-mix הראשון חוזר</li>
+        <li>מדפיסים את דף ה-patch החדש ומדביקים על הרק</li>
+        <li>אחרי החזרה, שולחים לדן את קובץ ה-log</li>
+      </ul></div>
+  </div>
+  <p class="note" style="margin-top:16px">יש רעיונות, או שמשהו מרגיש לא נכון? תגידו לדן. כל הסטאפ הוא קובץ נתונים אחד, ושינויים מהירים.</p>
+</section>
+
+<!-- 30 -->
+<section class="slide">
+  <div class="kicker">מילון מונחים · 1 מתוך 2</div>
+  <h2>המונחים באנגלית, בעברית</h2>
+  <div class="cols" style="margin-top:8px;gap:32px">
+    <div class="gl">
+      <div>In-ears / IEM</div><div>אוזניות מוניטור שנכנסות לאוזן. IEM ‏(In-Ear Monitoring) = מערך שבו כל נגן שומע mix משלו</div>
+      <div>Mix</div><div>השילוב של כל הערוצים, כל אחד ברמה שלו. לכל נגן יש mix משלו</div>
+      <div>Aux / Bus</div><div>יציאת mix נוספת של המיקסר. אצלנו כל aux הוא mix ל-in-ears</div>
+      <div>Send</div><div>כמה מערוץ מסוים נכנס ל-mix מסוים</div>
+      <div>Fader</div><div>הסליידר שקובע את העוצמה של ערוץ או של mix</div>
+      <div>Pre-fader</div><div>ה-send לא מושפע מה-fader של הערוץ</div>
+      <div>Tap</div><div>הנקודה בשרשרת שממנה לוקחים את האות (PRE = לפני ה-fader)</div>
+      <div>Master</div><div>העוצמה הכללית של mix אחד</div>
+      <div>Main L/R</div><div>היציאה הראשית של המיקסר. אצלנו: ה-in-ears של המתופף</div>
+      <div>Channel strip</div><div>ערוץ: כניסה אחת וכל העיבוד שלה (פילטר, EQ, ‏mute, ‏pan)</div>
+    </div>
+    <div class="gl">
+      <div>Gain / Preamp</div><div>ההגברה בכניסה של כל ערוץ. מכוונים אותה לפי עוצמת המקור</div>
+      <div>Pan</div><div>המיקום של הצליל בין שמאל לימין</div>
+      <div>Stereo / Mono</div><div>שני ערוצים (שמאל וימין) / ערוץ אחד</div>
+      <div>Link</div><div>שני ערוצים או שני buses שמתנהגים כזוג stereo אחד</div>
+      <div>Mute / Unmute</div><div>השתקה / ביטול השתקה</div>
+      <div>Mute group</div><div>מתג אחד שמשתיק קבוצת ערוצים</div>
+      <div>Talkback</div><div>מיקרופון לדיבור בין הנגנים. נמצא בכל mix</div>
+      <div>dB</div><div>דציבל, יחידת עוצמה. ‏<span class="l">0 dB</span> = הרמה המקורית, <span class="l">-10 dB</span> = שקט יותר</div>
+      <div>Hz / kHz</div><div>הרץ, יחידת תדר. נמוך = בס, גבוה = מצלתיים. ‏<span class="l">1 kHz</span> = ‏<span class="l">1,000 Hz</span></div>
+      <div>Patch</div><div>חיבור הכבלים: מה מחובר לאיזה שקע</div>
+    </div>
+  </div>
+</section>
+
+<!-- 31 -->
+<section class="slide">
+  <div class="kicker">מילון מונחים · 2 מתוך 2</div>
+  <h2>פילטרים, מיקרופונים והקלטה</h2>
+  <div class="cols" style="margin-top:8px;gap:32px">
+    <div class="gl">
+      <div>Low-cut / High-pass</div><div>פילטר (HPF) שמוריד את כל מה שמתחת לתדר מסוים</div>
+      <div>High-cut / Low-pass</div><div>פילטר (LPF) שמוריד את כל מה שמעל תדר מסוים</div>
+      <div>Cutoff</div><div>התדר שבו הפילטר מתחיל לפעול</div>
+      <div>Rumble</div><div>רעש נמוך ולא רצוי: רעידות, מזגן, צעדים</div>
+      <div>Bleed</div><div>זליגה: הסאונד של כלי אחד שנכנס למיקרופון של כלי אחר</div>
+      <div>Headroom</div><div>המרווח עד שהסאונד מתחיל להתעוות. ‏rumble מיותר אוכל אותו</div>
+      <div>EQ</div><div>אקולייזר: הגברה או הנמכה של טווחי תדרים</div>
+      <div>48V / Phantom</div><div>מתח שנשלח בכבל אל מיקרופוני condenser</div>
+      <div>Condenser / Dynamic</div><div>סוגי מיקרופונים: condenser רגיש וצריך 48V; ‏dynamic עמיד ולא צריך</div>
+      <div>DI</div><div>חיבור ישיר מכלי או מ-preamp אל המיקסר, בלי מיקרופון</div>
+    </div>
+    <div class="gl">
+      <div>Hi-Z</div><div>כניסה בעכבה גבוהה, לגיטרה או בס שמחוברים ישירות. כניסות 1-2 ב-XR18 תמיד Hi-Z</div>
+      <div>Cab</div><div>הקבינט (הרמקול) של המגבר</div>
+      <div>Kick / Snare</div><div>תוף הבס / תוף הסנר</div>
+      <div>Overheads (OH)</div><div>מיקרופונים מעל סט התופים: מצלתיים ותמונת הסט כולו</div>
+      <div>Ambience (Amb)</div><div>מיקרופוני חדר שקולטים את הסאונד הכללי</div>
+      <div>Backing track</div><div>הקלטה שמתנגנת מהמחשב, ומנגנים איתה</div>
+      <div>E-Pad</div><div>פד תופים אלקטרוני, מחובר ל-Aux In</div>
+      <div>USB send / return</div><div>אודיו מהמיקסר למחשב (הקלטה) / מהמחשב למיקסר (ניגון)</div>
+      <div>DAW</div><div>תוכנת הקלטה ועריכה (<span class="l">Reaper, Logic…</span>)</div>
+      <div>OSC</div><div>השפה שבה האפליקציה והמיקסר מדברים ברשת</div>
+    </div>
+  </div>
+</section>
+
+</div></div>
+<div id="bar"></div><div id="hud"></div>
+<script>
+// ---------- filter curves (2nd-order, illustration) ----------
+const NS = "http://www.w3.org/2000/svg";
+function el(svg, tag, attrs, text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;svg.appendChild(e);return e;}
+const TICKS=[[20,"20"],[50,"50"],[100,"100"],[200,"200"],[500,"500"],[1000,"1k"],[2000,"2k"],[5000,"5k"],[10000,"10k"],[20000,"20k"]];
+function xOf(f,x0,w){return x0+w*Math.log10(f/20)/3;}
+
+function filterChart(id, type, fc, color){
+  const svg=document.getElementById(id), x0=40, w=500, y0=20, h=180, minDb=-36;
+  const yOf=db=>y0+h*(-Math.max(db,minDb))/(-minDb);
+  for(const [f,l] of TICKS){const x=xOf(f,x0,w);el(svg,"line",{x1:x,x2:x,y1:y0,y2:y0+h,stroke:"#eef0f3"});el(svg,"text",{x:x,y:y0+h+18,"text-anchor":"middle","font-size":12,fill:"#5f6672"},l);}
+  for(const db of [0,-12,-24,-36]){const y=yOf(db);el(svg,"line",{x1:x0,x2:x0+w,y1:y,y2:y,stroke:"#eef0f3"});el(svg,"text",{x:x0-6,y:y+4,"text-anchor":"end","font-size":12,fill:"#5f6672"},db);}
+  el(svg,"text",{x:x0+w/2,y:y0+h+36,"text-anchor":"middle","font-size":12,fill:"#9aa1ab",direction:"rtl"},"תדר (Hz) משמאל לימין · עוצמה (dB) מלמטה למעלה");
+  let d="";
+  for(let i=0;i<=300;i++){const f=20*Math.pow(1000,i/300);const r=type==="hp"?fc/f:f/fc;const db=-10*Math.log10(1+Math.pow(r,4));d+=(i?"L":"M")+xOf(f,x0,w).toFixed(1)+","+yOf(db).toFixed(1);}
+  const xc=xOf(fc,x0,w);
+  if(type==="hp") el(svg,"rect",{x:x0,y:y0,width:xc-x0,height:h,fill:"#d64545",opacity:.07});
+  else el(svg,"rect",{x:xc,y:y0,width:x0+w-xc,height:h,fill:"#d64545",opacity:.07});
+  el(svg,"path",{d:d,fill:"none",stroke:color,"stroke-width":3.5,"stroke-linejoin":"round"});
+  el(svg,"line",{x1:xc,x2:xc,y1:y0,y2:y0+h,stroke:color,"stroke-dasharray":"4 4","stroke-width":1.5});
+  el(svg,"circle",{cx:xc,cy:yOf(-3),r:5,fill:color});
+  el(svg,"text",{x:xc+(type==="hp"?8:-8),y:yOf(-3)+22,"text-anchor":type==="hp"?"start":"end","font-size":13,"font-weight":650,fill:color},"cutoff "+(fc>=1000?fc/1000+" kHz":fc+" Hz"));
+  el(svg,"text",{x:type==="hp"?x0+8:x0+w-8,y:y0+h-10,"text-anchor":type==="hp"?"start":"end","font-size":13,fill:"#b03a3a","font-weight":650},"נחתך");
+  el(svg,"text",{x:type==="hp"?x0+w-8:x0+8,y:y0+16,"text-anchor":type==="hp"?"end":"start","font-size":13,fill:"#1a7f4b","font-weight":650},"עובר בלי שינוי");
+}
+filterChart("hpf","hp",100,"#2f6fde");
+filterChart("lpf","lp",5000,"#8a5cd1");
+
+// ---------- instrument ranges vs our low-cuts ----------
+(function(){
+  const svg=document.getElementById("ranges"), x0=210, w=880, top=18, rowH=40;
+  const rows=[
+    ["Bass DI 1-2","#30a46c",40,5000,null],["Bass Cab (1)","#30a46c",40,5000,50],["Kick (9)","#e0c400",45,6000,30],
+    ["Gtr 1-2 (5-6)","#e5484d",80,6000,80],["Snare (10)","#e0c400",120,10000,80],["Amb L/R (15-16)","#9aa1ab",30,18000,80],
+    ["Vox 1-2 (7-8)","#d6409f",90,12000,100],["Talkback (4)","#9aa1ab",100,8000,120],["OH L/R (11-12)","#e0c400",150,18000,120],
+    ["Computer, E-Pad","#05a2c2",20,20000,null]];
+  const bottom=top+rows.length*rowH;
+  for(const [f,l] of TICKS){const x=xOf(f,x0,w);el(svg,"line",{x1:x,x2:x,y1:top-6,y2:bottom,stroke:"#eef0f3"});el(svg,"text",{x:x,y:bottom+20,"text-anchor":"middle","font-size":13,fill:"#5f6672"},l);}
+  el(svg,"text",{x:x0+w/2,y:bottom+42,"text-anchor":"middle","font-size":13,fill:"#9aa1ab",direction:"rtl"},"תדר (Hz): צלילים נמוכים משמאל, מצלתיים ואוויר מימין");
+  rows.forEach(([label,color,lo,hi,cut],i)=>{
+    const y=top+i*rowH, cy=y+rowH/2;
+    el(svg,"text",{x:x0-14,y:cy+5,"text-anchor":"end","font-size":15,"font-weight":600,fill:"#16181d"},label);
+    el(svg,"rect",{x:xOf(lo,x0,w),y:cy-9,width:xOf(hi,x0,w)-xOf(lo,x0,w),height:18,rx:9,fill:color,opacity:.75});
+    if(cut){const xc=xOf(cut,x0,w);
+      el(svg,"rect",{x:x0,y:cy-15,width:xc-x0,height:30,fill:"#d64545",opacity:.13});
+      el(svg,"line",{x1:xc,x2:xc,y1:cy-16,y2:cy+16,stroke:"#d64545","stroke-width":2.5});
+      el(svg,"text",{x:xc+6,y:cy-11,"font-size":12,"font-weight":700,fill:"#b03a3a"},cut+" Hz");
+    } else el(svg,"text",{x:x0+w+10,y:cy+5,"font-size":13,fill:"#5f6672"},"בלי חיתוך");
+  });
+})();
+
+// ---------- navigation ----------
+const slides=[...document.querySelectorAll(".slide")], deck=document.getElementById("deck"), hud=document.getElementById("hud"), bar=document.getElementById("bar"), lang=document.getElementById("lang");
+slides.forEach((s,i)=>{if(!s.classList.contains("title")&&!s.classList.contains("section")){const f=document.createElement("div");f.className="foot";f.innerHTML="<span>MasTool XR18 · מערך החזרות</span><span class='l'>"+(i+1)+" / "+slides.length+"</span>";s.appendChild(f);}});
+let cur=Math.min(Math.max(parseInt(location.hash.slice(1))||1,1),slides.length)-1;
+function show(n){cur=Math.min(Math.max(n,0),slides.length-1);slides.forEach((s,i)=>s.classList.toggle("active",i===cur));hud.textContent=cur===0?"חיצים או הקשה למעבר (שמאל = הבא) · F למסך מלא":"";bar.style.width=((cur+1)/slides.length*100)+"%";history.replaceState(null,"","#"+(cur+1));lang.href="../#"+Math.min(cur+1,30);}
+function fit(){const s=Math.min(innerWidth/1280,innerHeight/720);deck.style.transform="scale("+s+")";}
+addEventListener("resize",fit);
+addEventListener("keydown",e=>{
+  if(["ArrowRight","PageDown"," ","Enter","ArrowDown"].includes(e.key)){e.preventDefault();show(cur+1);}
+  else if(["ArrowLeft","PageUp","Backspace","ArrowUp"].includes(e.key)){e.preventDefault();show(cur-1);}
+  else if(e.key==="Home")show(0);else if(e.key==="End")show(slides.length-1);
+  else if(e.key==="f"||e.key==="F"){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
+});
+document.getElementById("stage").addEventListener("click",e=>{show(e.clientX<innerWidth/2?cur+1:cur-1);});
+addEventListener("hashchange",()=>show((parseInt(location.hash.slice(1))||1)-1));
+fit();show(cur);
+</script>
+</body>
+</html>
