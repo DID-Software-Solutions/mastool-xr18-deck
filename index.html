@@ -186,7 +186,7 @@ svg text{font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
     <tr><td class="n">1</td><td><span class="sw" style="background:var(--green)"></span><b>Bass Cab</b></td><td>Sennheiser e609/e906 on the cab (dynamic)</td><td>50 Hz</td><td>-</td><td>C</td><td>4 Bass</td></tr>
     <tr><td class="n">2-3</td><td><span class="sw" style="background:var(--green)"></span><b>Bass DI 1 / 2</b></td><td>Or's two SansAmp outputs</td><td>off</td><td>-</td><td>C</td><td>4 Bass</td></tr>
     <tr><td class="n">4</td><td><span class="sw" style="background:var(--white)"></span><b>Talkback</b></td><td>Talkback mic</td><td>120 Hz</td><td>-</td><td>C</td><td>1 Talk &amp; Amb</td></tr>
-    <tr><td class="n">5-6</td><td><span class="sw" style="background:var(--red)"></span><b>Gtr 1 / Gtr 2</b></td><td>Guitar mic / DI 1 and 2</td><td>80 Hz</td><td>-</td><td>L / R (not linked)</td><td>3 Guitar</td></tr>
+    <tr><td class="n">5-6</td><td><span class="sw" style="background:var(--red)"></span><b>Gtr 1 / Gtr 2</b></td><td>Guitar mic / DI 1 and 2</td><td>70 Hz</td><td>-</td><td>L / R (not linked)</td><td>3 Guitar</td></tr>
     <tr><td class="n">7</td><td><span class="sw" style="background:var(--magenta)"></span><b>Vox 1</b></td><td>Main vocal mic</td><td>100 Hz</td><td>-</td><td>C</td><td>-</td></tr>
     <tr><td class="n">8</td><td><span class="sw" style="background:var(--blue)"></span><b>Vox 2</b></td><td>Second vocal mic (duets)</td><td>100 Hz</td><td>-</td><td>C</td><td>-</td></tr>
     <tr><td class="n">9</td><td><span class="sw" style="background:var(--yellow)"></span><b>Kick</b></td><td>Kick mic</td><td>30 Hz</td><td>-</td><td>C</td><td>2 Drums</td></tr>
@@ -262,7 +262,7 @@ svg text{font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
     <div>
       <h2>Dan / Jonny: each of you keeps your own mix</h2>
       <div class="kv" style="margin:14px 0 18px">
-        <div>Ch 5-6 Gtr 1 / 2</div><div>Panned <b>hard left / right</b>, not linked. Low-cut 80 Hz, just under the low E (82 Hz)</div>
+        <div>Ch 5-6 Gtr 1 / 2</div><div>Panned <b>hard left / right</b>, not linked. Low-cut 70 Hz, just under the low D (73 Hz): we tune to D</div>
         <div>On a swap</div><div>Dan's current mix is read from the mixer and saved, then Jonny's saved mix is loaded on Aux 3-4. Swap back and Dan's returns exactly</div>
         <div>First time ever</div><div>No saved mix yet: you get the starting mix (guitars 0 dB, rest -10, talkback/room -20, master -20)</div>
         <div>Mute group 3</div><div>Silences both guitar channels everywhere</div>
@@ -380,7 +380,7 @@ svg text{font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
       <tr><td>Kick</td><td>30 Hz</td><td>Only sub-rumble nobody hears. Thump (~50-100 Hz) untouched</td></tr>
       <tr><td>Bass Cab</td><td>50 Hz</td><td>Lows come from the DIs. The cab mic adds grit</td></tr>
       <tr><td>Bass DI 1-2</td><td>off</td><td>The foundation. We tune to D: low D is 37 Hz, keep all of it</td></tr>
-      <tr><td>Gtr 1-2</td><td>80 Hz</td><td>Lowest guitar note is 82 Hz. Below that is only mud and bass bleed</td></tr>
+      <tr><td>Gtr 1-2</td><td>70 Hz</td><td>We tune to D: lowest guitar note is 73 Hz. Below that is only mud and bass bleed</td></tr>
       <tr><td>Snare</td><td>80 Hz</td><td>Body is 150-250 Hz. Below is kick and bass bleed</td></tr>
       <tr><td>Amb L/R</td><td>80 Hz</td><td>Room rumble, AC, footsteps</td></tr>
       <tr><td>Vox 1-2</td><td>100 Hz</td><td>Handling noise, pops, boomy close-mic effect</td></tr>
@@ -765,7 +765,7 @@ filterChart("lpf","lp",5000,"#8a5cd1");
   const svg=document.getElementById("ranges"), x0=210, w=900, top=18, rowH=40;
   const rows=[ // label, color, lo, hi, cut
     ["Bass DI 1-2","#30a46c",36,5000,null],["Bass Cab (1)","#30a46c",36,5000,50],["Kick (9)","#e0c400",45,6000,30],
-    ["Gtr 1-2 (5-6)","#e5484d",80,6000,80],["Snare (10)","#e0c400",120,10000,80],["Amb L/R (15-16)","#9aa1ab",30,18000,80],
+    ["Gtr 1-2 (5-6)","#e5484d",73,6000,70],["Snare (10)","#e0c400",120,10000,80],["Amb L/R (15-16)","#9aa1ab",30,18000,80],
     ["Vox 1-2 (7-8)","#d6409f",90,12000,100],["Talkback (4)","#9aa1ab",100,8000,120],["OH L/R (11-12)","#e0c400",150,18000,120],
     ["Computer, E-Pad","#05a2c2",20,20000,null]];
   const bottom=top+rows.length*rowH;
