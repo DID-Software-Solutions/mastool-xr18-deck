@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MasTool XR18: how the rehearsal rig works</title>
+<style>
+:root{
+  --ink:#16181d;--muted:#5f6672;--line:#d9dde3;--head:#f1f3f6;--accent:#2f6fde;--soft:#eef3fd;
+  --green:#30a46c;--red:#e5484d;--yellow:#f5d90a;--blue:#3e63dd;--magenta:#d6409f;--cyan:#05a2c2;--white:#c9ced6;
+  --warn:#b54708;--warnbg:#fff6ed;--ok:#1a7f4b;--okbg:#ecfaf2;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#1b1d22;color:var(--ink);
+  font:20px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#deck{flex:none;width:1280px;height:720px;position:relative;transform-origin:center center}
+.slide{position:absolute;inset:0;background:#fff;padding:52px 64px 44px;display:none;flex-direction:column;overflow:hidden}
+.slide.active{display:flex}
+.slide h1{font-size:46px;line-height:1.1;margin:0 0 10px;letter-spacing:-.01em}
+.slide h2{font-size:34px;margin:0 0 6px;letter-spacing:-.01em}
+.slide .kicker{color:var(--accent);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+.slide .lead{color:var(--muted);font-size:21px;margin:0 0 20px}
+.slide ul{margin:6px 0;padding-left:24px}.slide li{margin:5px 0}
+.foot{position:absolute;left:64px;right:64px;bottom:16px;display:flex;justify-content:space-between;color:#9aa1ab;font-size:13px}
+b,strong{font-weight:650}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:36px}
+.cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+.card{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:#fff}
+.card h3{margin:0 0 8px;font-size:21px}
+.card.soft{background:var(--soft);border-color:#d3e0fa}
+.card.warn{background:var(--warnbg);border-color:#f9d6b4}
+.card.ok{background:var(--okbg);border-color:#bfe8d1}
+.note{font-size:17px;color:var(--muted)}
+.small{font-size:16px}
+table{border-collapse:collapse;width:100%;font-size:16px}
+th,td{border:1px solid var(--line);padding:5px 9px;text-align:left;vertical-align:top}
+th{background:var(--head);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:#3b414b}
+td.n{font-weight:700;text-align:center;width:64px;white-space:nowrap}
+.sw{display:inline-block;width:13px;height:13px;border-radius:3px;margin-right:7px;vertical-align:-1px;border:1px solid #0002}
+.tag{display:inline-block;padding:1px 9px;border-radius:99px;font-size:14px;font-weight:650;background:var(--head);color:#3b414b;margin-right:4px}
+.big{font-size:60px;font-weight:750;line-height:1;color:var(--accent)}
+kbd{font:14px ui-monospace,Menlo,monospace;background:var(--head);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+code{font:16px ui-monospace,Menlo,monospace;background:var(--head);border-radius:4px;padding:1px 5px}
+/* title + section slides */
+.slide.title{background:linear-gradient(135deg,#16181d 0%,#23324f 100%);color:#fff;justify-content:center}
+.slide.title .kicker{color:#8fb3ff}.slide.title h1{font-size:64px}.slide.title .lead{color:#b9c3d6;font-size:25px}
+.slide.section{background:var(--accent);color:#fff;justify-content:center}
+.slide.section h1{font-size:58px}.slide.section .lead{color:#dbe6fb}
+.slide.section .kicker{color:#cfe0ff}
+.strip{display:flex;gap:6px;margin-top:34px}.strip span{flex:1;height:10px;border-radius:3px}
+/* flow diagram */
+.flow{display:grid;grid-template-columns:1.05fr 34px 1.25fr 34px 1.15fr 34px 1.1fr;align-items:stretch;gap:0;margin-top:6px}
+.fcol{display:flex;flex-direction:column;gap:8px}
+.fcol .h{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px}
+.box{border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:16px;background:#fff;line-height:1.3}
+.box.hl{background:var(--soft);border-color:#c9d9f8}
+.arrow{display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:28px;font-weight:700}
+/* steps */
+.steps{display:flex;gap:12px;margin-top:8px}
+.step{flex:1;border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;position:relative;font-size:17px}
+.step .num{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:16px}
+.step h4{margin:0 0 4px;font-size:18px}
+/* person slides */
+.person{display:grid;grid-template-columns:330px 1fr;gap:36px;flex:1}
+.who{align-self:start;border-radius:14px;padding:22px;color:#fff;display:flex;flex-direction:column;gap:10px}
+.who .names{font-size:38px;font-weight:750;line-height:1.1}
+.who .jack{font-size:15px;opacity:.9;text-transform:uppercase;letter-spacing:.08em}
+.who .big2{font-size:30px;font-weight:700}
+.who.dark{color:#16181d}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:6px 14px;font-size:18px}
+.kv div:nth-child(odd){color:var(--muted)}
+/* app screenshot */
+.shot{height:540px;border-radius:10px;box-shadow:0 10px 40px #0003;border:1px solid var(--line)}
+/* svg charts */
+svg text{font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
+/* nav */
+#hud{position:fixed;right:14px;bottom:10px;color:#8e96a3;font:13px system-ui;user-select:none}
+#bar{position:fixed;left:0;bottom:0;height:3px;background:var(--accent);transition:width .2s}
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html,body{background:#fff;height:auto}
+  #stage{position:static;display:block}
+  #deck{transform:none!important;width:auto;height:auto}
+  .slide{display:flex!important;position:relative;width:1280px;height:720px;page-break-after:always;break-after:page}
+  #hud,#bar{display:none}
+}
+</style>
+</head>
+<body>
+<div id="stage"><div id="deck">
+
+<!-- 1 -->
+<section class="slide title">
+  <div class="kicker">MasTool rehearsal rig</div>
+  <h1>The XR18, the in-ears<br>and the app that runs them</h1>
+  <p class="lead">How the signal flows, what every setting does, what matters to you,<br>and how the app keeps everyone's mix safe.</p>
+  <div class="strip">
+    <span style="background:var(--green)"></span><span style="background:var(--white)"></span><span style="background:var(--red)"></span>
+    <span style="background:var(--magenta)"></span><span style="background:var(--blue)"></span><span style="background:var(--yellow)"></span>
+    <span style="background:var(--cyan)"></span>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="kicker">Why this exists</div>
+  <h2>One mixer, swapping players, nobody loses their mix</h2>
+  <p class="lead">We rotate guitarists, drummers and singers. Every swap used to mean someone rebuilding an in-ear mix from scratch.</p>
+  <div class="cols">
+    <div class="card warn">
+      <h3>Before</h3>
+      <ul>
+        <li>New player steps in, hears the last player's mix</li>
+        <li>Someone fiddles in X AIR until it sounds right</li>
+        <li>Next week, start again</li>
+        <li>Easy to nudge the wrong fader and change someone else's ears</li>
+      </ul>
+    </div>
+    <div class="card ok">
+      <h3>Now</h3>
+      <ul>
+        <li>Pick who's playing in the app</li>
+        <li>The outgoing player's mix is <b>saved</b>, the incoming player's mix is <b>loaded</b></li>
+        <li>Nobody else's mix changes</li>
+        <li>No Save button: it saves every 10 s, on every swap and on close</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note" style="margin-top:22px">Mixer: Behringer XR18 (X AIR). App: small Mac/Windows program on the laptop, talks to the mixer over its Wi-Fi.</p>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="kicker">The big picture</div>
+  <h2>How sound flows through the rig</h2>
+  <div class="flow" style="margin-top:14px">
+    <div class="fcol">
+      <div class="h">1 · Sources</div>
+      <div class="box"><span class="sw" style="background:var(--green)"></span>Bass: cab mic + 2 SansAmp DIs</div>
+      <div class="box"><span class="sw" style="background:var(--red)"></span>Guitar: 2 mics/DIs</div>
+      <div class="box"><span class="sw" style="background:var(--magenta)"></span>Vocals: 2 mics</div>
+      <div class="box"><span class="sw" style="background:var(--yellow)"></span>Drums: kick, snare, 2 OH</div>
+      <div class="box"><span class="sw" style="background:var(--white)"></span>Talkback + 2 room mics</div>
+      <div class="box"><span class="sw" style="background:var(--cyan)"></span>Computer (USB) + E-Pad</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="fcol">
+      <div class="h">2 · Channel strip (per input)</div>
+      <div class="box hl"><b>Low-cut filter</b>: removes rumble below a set frequency</div>
+      <div class="box hl"><b>48V</b>: power for condenser mics (overheads, room mics)</div>
+      <div class="box hl"><b>On/off switch</b>: the app's channel checkboxes</div>
+      <div class="box hl"><b>Mute group</b>: silence a whole section at once</div>
+      <div class="box hl"><b>Pan</b>: Gtr 1 left, Gtr 2 right, rest centre</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="fcol">
+      <div class="h">3 · Sends (pre-fader)</div>
+      <div class="box">Each channel is sent to <b>every</b> in-ear mix at its own level</div>
+      <div class="box">Your send levels = <b>your</b> mix. Changing yours doesn't touch anyone else's</div>
+      <div class="box">The app saves and restores these levels per player</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="fcol">
+      <div class="h">4 · In-ear mixes</div>
+      <div class="box"><span class="sw" style="background:var(--green)"></span><b>Aux 1-2</b> Bass: Or</div>
+      <div class="box"><span class="sw" style="background:var(--red)"></span><b>Aux 3-4</b> Guitar: Dan / Jonny</div>
+      <div class="box"><span class="sw" style="background:var(--magenta)"></span><b>Aux 5-6</b> Vocals: Ben / Barak</div>
+      <div class="box"><span class="sw" style="background:var(--yellow)"></span><b>Main L/R</b> Drums: Daniel / Nadav</div>
+      <div class="box"><b>USB 1-18</b> → laptop: records every raw input</div>
+    </div>
+  </div>
+  <p class="note" style="margin-top:16px">The laptop app sits on top of all this: it sends commands to the mixer over Wi-Fi and reads back what everyone is hearing.</p>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker">Inputs</div>
+  <h2 style="margin-bottom:10px">What's plugged in where</h2>
+  <table class="small" style="font-size:15px">
+    <tr><th>Ch</th><th>Name</th><th>Plugged in</th><th>Low-cut</th><th>48V</th><th>Pan / link</th><th>Mute grp</th></tr>
+    <tr><td class="n">1</td><td><span class="sw" style="background:var(--green)"></span><b>Bass Cab</b></td><td>Sennheiser e609/e906 on the cab (dynamic)</td><td>50 Hz</td><td>-</td><td>C</td><td>4 Bass</td></tr>
+    <tr><td class="n">2-3</td><td><span class="sw" style="background:var(--green)"></span><b>Bass DI 1 / 2</b></td><td>Or's two SansAmp outputs</td><td>off</td><td>-</td><td>C</td><td>4 Bass</td></tr>
+    <tr><td class="n">4</td><td><span class="sw" style="background:var(--white)"></span><b>Talkback</b></td><td>Talkback mic</td><td>120 Hz</td><td>-</td><td>C</td><td>1 Talk &amp; Amb</td></tr>
+    <tr><td class="n">5-6</td><td><span class="sw" style="background:var(--red)"></span><b>Gtr 1 / Gtr 2</b></td><td>Guitar mic / DI 1 and 2</td><td>80 Hz</td><td>-</td><td>L / R (not linked)</td><td>3 Guitar</td></tr>
+    <tr><td class="n">7</td><td><span class="sw" style="background:var(--magenta)"></span><b>Vox 1</b></td><td>Main vocal mic</td><td>100 Hz</td><td>-</td><td>C</td><td>-</td></tr>
+    <tr><td class="n">8</td><td><span class="sw" style="background:var(--blue)"></span><b>Vox 2</b></td><td>Second vocal mic (duets)</td><td>100 Hz</td><td>-</td><td>C</td><td>-</td></tr>
+    <tr><td class="n">9</td><td><span class="sw" style="background:var(--yellow)"></span><b>Kick</b></td><td>Kick mic</td><td>30 Hz</td><td>-</td><td>C</td><td>2 Drums</td></tr>
+    <tr><td class="n">10</td><td><span class="sw" style="background:var(--yellow)"></span><b>Snare</b></td><td>Snare mic</td><td>80 Hz</td><td>-</td><td>C</td><td>2 Drums</td></tr>
+    <tr><td class="n">11-12</td><td><span class="sw" style="background:var(--yellow)"></span><b>OH L / R</b></td><td>Overhead condensers</td><td>120 Hz</td><td>yes</td><td>linked stereo</td><td>2 Drums</td></tr>
+    <tr><td class="n">13-14</td><td><span class="sw" style="background:var(--cyan)"></span><b>Computer L / R</b></td><td>Nothing in the jack: comes from USB 1-2</td><td>off</td><td>-</td><td>linked stereo</td><td>-</td></tr>
+    <tr><td class="n">15-16</td><td><span class="sw" style="background:var(--white)"></span><b>Amb L / R</b></td><td>Room mics (when installed)</td><td>80 Hz</td><td>when on</td><td>linked stereo</td><td>1 Talk &amp; Amb</td></tr>
+    <tr><td class="n">Aux</td><td><span class="sw" style="background:var(--cyan)"></span><b>E-Pad</b></td><td>E-Pad L/R into Aux In</td><td>-</td><td>-</td><td>stereo</td><td>-</td></tr>
+  </table>
+  <p class="note" style="margin-top:8px;font-size:15.5px"><b>Changed from the old patch sheet:</b> talkback moved to ch 4 and everything from guitar on moved up one. The XR18 can only link odd-even pairs (1-2, 3-4 … 15-16), so the stereo pairs had to land on 11-12, 13-14 and 15-16.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">Outputs</div>
+  <h2>Which jack feeds whose in-ears</h2>
+  <div class="cols" style="grid-template-columns:1.25fr 1fr;margin-top:10px">
+    <table>
+      <tr><th>Output jack</th><th>Mix</th><th>Who</th></tr>
+      <tr><td><b>Aux 1-2</b> stereo</td><td><span class="sw" style="background:var(--green)"></span>Bass</td><td>Or</td></tr>
+      <tr><td><b>Aux 3-4</b> stereo</td><td><span class="sw" style="background:var(--red)"></span>Guitar</td><td>Dan or Jonny</td></tr>
+      <tr><td><b>Aux 5-6</b> stereo</td><td><span class="sw" style="background:var(--magenta)"></span>Vocals</td><td>Ben or Barak</td></tr>
+      <tr><td><b>Aux 5</b> + <b>Aux 6</b> mono</td><td><span class="sw" style="background:var(--magenta)"></span>Duet ("Both")</td><td>Aux 5 Ben, Aux 6 Barak</td></tr>
+      <tr><td><b>Main L/R</b> stereo</td><td><span class="sw" style="background:var(--yellow)"></span>Drums</td><td>Daniel or Nadav</td></tr>
+      <tr><td><b>USB send 1-18</b></td><td>Recording</td><td>Laptop / DAW</td></tr>
+      <tr><td><b>USB return 1-2</b></td><td>Backing track</td><td>Into ch 13-14, everyone hears it</td></tr>
+    </table>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card soft"><h3>One mix per role, not per person</h3>There are 4 in-ear mixes. Whoever is in the role uses that jack. The app swaps the <i>content</i> of the mix when the person changes.</div>
+      <div class="card warn"><h3>Main L/R is not a PA</h3>In this setup Main L/R is the <b>drummer's in-ears</b>. The channel faders set the drummer's mix, so don't use them as a "master mix".</div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="slide section">
+  <div class="kicker">Part 1</div>
+  <h1>What matters to you</h1>
+  <p class="lead">One slide per role. Find yours.</p>
+</section>
+
+<!-- 7 Or -->
+<section class="slide">
+  <div class="kicker">Bass</div>
+  <div class="person">
+    <div class="who" style="background:var(--green)">
+      <div class="jack">Your in-ears</div><div class="big2">Aux 1-2 · stereo</div>
+      <div class="jack" style="margin-top:12px">Player</div><div class="names">Or</div>
+      <div class="jack" style="margin-top:12px">Your channels</div><div class="big2">1 · 2 · 3</div>
+    </div>
+    <div>
+      <h2>Or: three bass channels, one fixed seat</h2>
+      <div class="kv" style="margin:14px 0 18px">
+        <div>Ch 1 Bass Cab</div><div>Dynamic mic on the cab (no 48V). Low-cut at 50 Hz: the cab mic is for grit and character</div>
+        <div>Ch 2-3 Bass DI</div><div>Your two SansAmp outputs. <b>No low-cut</b>: this is where the real low end lives</div>
+        <div>Starting mix</div><div>Your 3 channels at 0 dB, talkback/room -20, everything else -10, master -20</div>
+        <div>Mute group 4</div><div>Silences all three bass channels in every mix at once (tuning, breaks)</div>
+      </div>
+      <div class="card soft small"><b>Check on the day:</b> Hi-Z must be <b>off</b> on channels 1-2 (the SansAmp gives line level). The app does not touch Hi-Z, so check it in X AIR Edit.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 Guitar -->
+<section class="slide">
+  <div class="kicker">Guitar</div>
+  <div class="person">
+    <div class="who" style="background:var(--red)">
+      <div class="jack">Your in-ears</div><div class="big2">Aux 3-4 · stereo</div>
+      <div class="jack" style="margin-top:12px">Players</div><div class="names">Dan<br>or Jonny</div>
+      <div class="jack" style="margin-top:12px">Your channels</div><div class="big2">5 · 6</div>
+    </div>
+    <div>
+      <h2>Dan / Jonny: each of you keeps your own mix</h2>
+      <div class="kv" style="margin:14px 0 18px">
+        <div>Ch 5-6 Gtr 1 / 2</div><div>Panned <b>hard left / right</b>, not linked. Low-cut 80 Hz, just under the low E (82 Hz)</div>
+        <div>On a swap</div><div>Dan's current mix is read from the mixer and saved, then Jonny's saved mix is loaded on Aux 3-4. Swap back and Dan's returns exactly</div>
+        <div>First time ever</div><div>No saved mix yet: you get the starting mix (guitars 0 dB, rest -10, talkback/room -20, master -20)</div>
+        <div>Mute group 3</div><div>Silences both guitar channels everywhere</div>
+      </div>
+      <div class="card soft small">Adjust your mix as usual (X AIR on a phone/tablet). The app picks up whatever you set: every 10 s, on every swap and when the laptop app closes.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 Vocals -->
+<section class="slide">
+  <div class="kicker">Vocals</div>
+  <div class="person">
+    <div class="who" style="background:var(--magenta)">
+      <div class="jack">Your in-ears</div><div class="big2">Aux 5-6 · stereo</div>
+      <div class="jack">Duet</div><div class="big2" style="font-size:24px">Aux 5 Ben · Aux 6 Barak<br>(mono each)</div>
+      <div class="jack" style="margin-top:8px">Players</div><div class="names">Ben / Barak<br>/ Both</div>
+    </div>
+    <div>
+      <h2>Ben / Barak: solo or duet</h2>
+      <div class="kv" style="margin:14px 0 16px">
+        <div>One singer</div><div>Sings on <b>Vox 1 (ch 7)</b>. Ch 8 is switched off automatically. Mix is stereo on Aux 5-6</div>
+        <div>"Both" (duet)</div><div>Ch 7 and 8 both on. Aux 5-6 is <b>unlinked</b> into two mono mixes, one each, so you each hear your own balance</div>
+        <div>Earphones</div><div>Duet: <b>Ben on Aux 5, Barak on Aux 6</b>. Back to one singer: 5-6 re-link into stereo</div>
+        <div>Low-cut</div><div>100 Hz on both mics: kills handling thumps, breath pops and the boomy close-mic effect</div>
+        <div>Mute groups</div><div>Vocals are in none: muting a section never silences the singer</div>
+      </div>
+      <div class="card soft small">Each singer's mix is saved under their own name, so Ben gets Ben's balance whether solo or in a duet.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 Drums -->
+<section class="slide">
+  <div class="kicker">Drums</div>
+  <div class="person">
+    <div class="who dark" style="background:var(--yellow)">
+      <div class="jack">Your in-ears</div><div class="big2">Main L/R · stereo</div>
+      <div class="jack" style="margin-top:12px">Players</div><div class="names">Daniel<br>or Nadav</div>
+      <div class="jack" style="margin-top:12px">Your channels</div><div class="big2">9 · 10 · 11 · 12</div>
+    </div>
+    <div>
+      <h2>Daniel / Nadav: your mix is the channel faders</h2>
+      <div class="kv" style="margin:14px 0 16px">
+        <div>Your mix</div><div>Main L/R, set by the <b>channel faders</b> (everyone else uses aux sends). Same save/restore on swap</div>
+        <div>Kick (9)</div><div>Low-cut 30 Hz: only the sub-rumble goes, all the thump stays</div>
+        <div>Snare (10)</div><div>Low-cut 80 Hz: cleans out kick and bass bleed under the snare</div>
+        <div>OH L/R (11-12)</div><div>Condensers with 48V, linked stereo, low-cut 120 Hz: cymbals and kit image, the lows come from the kick mic</div>
+        <div>Mute group 2</div><div>Silences the whole kit (9-12) in every mix</div>
+      </div>
+      <div class="card warn small">Anyone pulling a channel fader in X AIR is changing <b>your</b> ears. Ask people to touch only their own aux sends.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 Operator -->
+<section class="slide">
+  <div class="kicker">Whoever runs the laptop</div>
+  <h2>The operator's job: pick people, flip switches, check</h2>
+  <div class="cols3" style="margin-top:14px">
+    <div class="card"><h3>Connect</h3>
+      <ul class="small"><li>Join the XR18 Wi-Fi</li><li>Open <b>XR18 Rehearsal</b> from the Desktop</li><li><b>Find</b> fills in the mixer IP (remembered)</li><li>Dot next to the IP: <span style="color:var(--green)">●</span> mixer answers, <span style="color:var(--red)">●</span> it doesn't (checked every 3 s)</li></ul></div>
+    <div class="card"><h3>During rehearsal</h3>
+      <ul class="small"><li><b>Who is playing</b>: click a name, the swap is instant</li><li><b>Channels</b>: tick on/off, applied instantly</li><li><b>Mute groups</b>: silence a section</li><li><b>Undo / Redo</b> <kbd>Cmd/Ctrl+Z</kbd> <kbd>Cmd/Ctrl+Y</kbd>, 20 steps</li></ul></div>
+    <div class="card"><h3>When something's off</h3>
+      <ul class="small"><li><b>Check mixer</b>: lists differences, changes nothing</li><li><b>Sync &amp; check</b>: fixes only what differs</li><li><b>Set up mixer…</b>: full reset of the setup (asks first)</li><li>Hover anything for a tooltip</li></ul></div>
+  </div>
+  <div class="card soft small" style="margin-top:18px">Close the app normally at the end: it takes one last snapshot of everyone's mix. If the mixer is already off, it closes instantly and keeps the last good save.</div>
+</section>
+
+<!-- 12 -->
+<section class="slide section">
+  <div class="kicker">Part 2</div>
+  <h1>Filters: low-cut, high-cut,<br>high-pass, low-pass</h1>
+  <p class="lead">Four names, two ideas. And why every channel has the number it has.</p>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="kicker">Filters 101</div>
+  <h2>The name says what's <i>allowed through</i></h2>
+  <div class="cols" style="margin-top:10px">
+    <div>
+      <h3 style="margin:0 0 2px">High-pass = Low-cut</h3>
+      <div class="note">Highs <b>pass</b>, lows are <b>cut</b>. Used on 12 of our channels.</div>
+      <svg id="hpf" viewBox="0 0 560 250" width="560" height="250"></svg>
+    </div>
+    <div>
+      <h3 style="margin:0 0 2px">Low-pass = High-cut</h3>
+      <div class="note">Lows <b>pass</b>, highs are <b>cut</b>. The app sets none.</div>
+      <svg id="lpf" viewBox="0 0 560 250" width="560" height="250"></svg>
+    </div>
+  </div>
+  <div class="cols" style="margin-top:6px">
+    <div class="small"><b>Cutoff</b>: the frequency where the filter starts working (about 3 dB down). It isn't a wall: below it the level <b>slopes</b> away, more the further you go.</div>
+    <div class="small"><b>Use cases</b>: take hiss or fizz off a bass DI, cymbal bleed off a kick mic, harshness off something bright. If we ever need one, it's done by hand in X AIR Edit's EQ.</div>
+  </div>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="kicker">Filters on our channels</div>
+  <h2>Where each instrument lives, and where we cut</h2>
+  <p class="note" style="margin:0 0 4px">Bars = roughly where the useful sound is. <span style="color:#d64545;font-weight:650">Red shading</span> = what the low-cut removes. Log scale, like your ears.</p>
+  <svg id="ranges" viewBox="0 0 1150 520" width="1150" height="520"></svg>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="kicker">Why these numbers</div>
+  <h2>Every low-cut has a reason</h2>
+  <div class="cols" style="grid-template-columns:1.45fr 1fr;gap:28px;margin-top:8px">
+    <table style="font-size:15.5px">
+      <tr><th>Channel</th><th>Cut</th><th>Why</th></tr>
+      <tr><td>Kick</td><td>30 Hz</td><td>Only sub-rumble nobody hears. Thump (~50-100 Hz) untouched</td></tr>
+      <tr><td>Bass Cab</td><td>50 Hz</td><td>Lows come from the DIs. The cab mic adds grit</td></tr>
+      <tr><td>Bass DI 1-2</td><td>off</td><td>The foundation. Low E is 41 Hz, keep all of it</td></tr>
+      <tr><td>Gtr 1-2</td><td>80 Hz</td><td>Lowest guitar note is 82 Hz. Below that is only mud and bass bleed</td></tr>
+      <tr><td>Snare</td><td>80 Hz</td><td>Body is 150-250 Hz. Below is kick and bass bleed</td></tr>
+      <tr><td>Amb L/R</td><td>80 Hz</td><td>Room rumble, AC, footsteps</td></tr>
+      <tr><td>Vox 1-2</td><td>100 Hz</td><td>Handling noise, pops, boomy close-mic effect</td></tr>
+      <tr><td>Talkback</td><td>120 Hz</td><td>Speech should be clear, not full</td></tr>
+      <tr><td>OH L/R</td><td>120 Hz</td><td>Overheads = cymbals + kit picture. Kick mic does the low end</td></tr>
+      <tr><td>Computer, E-Pad</td><td>off</td><td>Already-mixed full-range sources, no stage rumble</td></tr>
+    </table>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card soft"><h3>Why it matters more in in-ears</h3><span class="small">Low rumble from every open mic piles up. You can't hear most of it, but it eats headroom, muddies the mix and tires your ears. Cutting it means you can hear everything at a <b>lower</b> volume.</span></div>
+      <div class="card"><h3>Rule of thumb</h3><span class="small">Cut just below the lowest note the source really plays. The more mics share a range, the more it pays to clean it up.</span></div>
+      <div class="note small">The mixer's low-cut range is 20-400 Hz. The app writes these values on <b>Set up mixer</b> and checks them on <b>Check mixer</b>.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 16 -->
+<section class="slide section">
+  <div class="kicker">Part 3</div>
+  <h1>How everything is managed</h1>
+  <p class="lead">Sends, swaps, saving, switches, recording and safety nets.</p>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <div class="kicker">Pre-fader sends</div>
+  <h2>Why your mix is only yours</h2>
+  <div class="cols" style="margin-top:12px">
+    <div>
+      <svg viewBox="0 0 540 330" width="540" height="330">
+        <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2f6fde"/></marker></defs>
+        <rect x="10" y="135" width="120" height="60" rx="9" fill="#fff" stroke="#d9dde3"/><text x="70" y="160" text-anchor="middle" font-size="16" font-weight="650">Gtr 1 (ch 5)</text><text x="70" y="180" text-anchor="middle" font-size="13" fill="#5f6672">after low-cut</text>
+        <circle cx="190" cy="165" r="7" fill="#2f6fde"/><text x="190" y="150" text-anchor="middle" font-size="12" fill="#5f6672">tap: PRE</text>
+        <line x1="130" y1="165" x2="183" y2="165" stroke="#2f6fde" stroke-width="2.5"/>
+        <g font-size="15">
+          <path d="M190,165 C240,165 240,40 300,40" fill="none" stroke="#2f6fde" stroke-width="2.5" marker-end="url(#ah)"/>
+          <path d="M190,165 C240,165 240,110 300,110" fill="none" stroke="#2f6fde" stroke-width="2.5" marker-end="url(#ah)"/>
+          <path d="M190,165 C240,165 240,180 300,180" fill="none" stroke="#2f6fde" stroke-width="2.5" marker-end="url(#ah)"/>
+          <rect x="305" y="20" width="220" height="40" rx="8" fill="#ecfaf2" stroke="#bfe8d1"/><text x="318" y="45">Or's send → Aux 1-2</text>
+          <rect x="305" y="90" width="220" height="40" rx="8" fill="#fdeeee" stroke="#f4c6c7"/><text x="318" y="115">Dan's send → Aux 3-4</text>
+          <rect x="305" y="160" width="220" height="40" rx="8" fill="#fbeef6" stroke="#f0c3de"/><text x="318" y="185">Ben's send → Aux 5-6</text>
+          <line x1="190" y1="172" x2="190" y2="245" stroke="#9aa1ab" stroke-width="2.5" stroke-dasharray="5 4"/>
+          <rect x="120" y="250" width="140" height="44" rx="8" fill="#fffbe0" stroke="#efe08a"/><text x="190" y="271" text-anchor="middle">Channel fader</text><text x="190" y="287" text-anchor="middle" font-size="12" fill="#5f6672">= drummer's mix</text>
+          <path d="M260,272 L300,272" stroke="#9aa1ab" stroke-width="2.5" marker-end="url(#ah)"/>
+          <rect x="305" y="252" width="220" height="40" rx="8" fill="#fffbe0" stroke="#efe08a"/><text x="318" y="277">Main L/R (Daniel)</text>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <ul>
+        <li>Every channel has a separate <b>send level</b> into each in-ear mix</li>
+        <li>Sends are tapped <b>pre-fader</b>: moving the channel fader does <b>not</b> change Or's, Dan's or Ben's ears</li>
+        <li>The drummer's mix is the fader path itself (Main L/R)</li>
+        <li>Each in-ear mix also has its own <b>master</b> level</li>
+        <li>What the app remembers for each player: the level of all 17 inputs in their mix, plus their master</li>
+      </ul>
+      <div class="card soft small" style="margin-top:12px">Every player's own channels start at 0 dB, so you hear yourself first. Everything else starts at -10, talkback and room mics at -20.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 18 -->
+<section class="slide">
+  <div class="kicker">The swap</div>
+  <h2>What happens when you click "Jonny"</h2>
+  <div class="steps" style="margin-top:16px">
+    <div class="step"><div class="num">1</div><h4>Read</h4>The app asks the mixer for Dan's current levels on Aux 3-4: 17 sends + master</div>
+    <div class="step"><div class="num">2</div><h4>Save</h4>Stored under "Dan" in the state file on the laptop</div>
+    <div class="step"><div class="num">3</div><h4>Dip</h4>Aux 3-4 master goes to silence first, so nothing blasts while levels change</div>
+    <div class="step"><div class="num">4</div><h4>Load</h4>Jonny's saved sends are written (or the starting mix if he's new)</div>
+    <div class="step"><div class="num">5</div><h4>Restore</h4>Master comes back up to Jonny's saved level</div>
+  </div>
+  <div class="cols" style="margin-top:22px">
+    <div class="card ok"><h3>Only that role is touched</h3>Or, the singer and the drummer don't hear a thing change. Their sends aren't written.</div>
+    <div class="card warn"><h3>If the mixer doesn't answer</h3>Dan's mix is <b>not</b> overwritten with nothing. The swap is marked <i>pending</i>, and Jonny's mix loads as soon as the mixer answers again (checked every 10 s).</div>
+  </div>
+</section>
+
+<!-- 19 -->
+<section class="slide">
+  <div class="kicker">Saving & memory</div>
+  <h2>No Save button. Ever.</h2>
+  <div class="cols3" style="margin-top:12px">
+    <div class="card"><div class="big">10 s</div><h3 style="margin-top:8px">Autosave</h3><span class="small">Every 10 seconds the app reads what every active player hears and stores it. Tweak your mix and it's kept.</span></div>
+    <div class="card"><div class="big">20</div><h3 style="margin-top:8px">Undo steps</h3><span class="small">Lineup changes and channel switches can be undone/redone 20 steps back. Survives restarts.</span></div>
+    <div class="card"><div class="big">1</div><h3 style="margin-top:8px">File on the laptop</h3><span class="small"><code>~/.xr18-rehearsal/state.json</code>: mixer IP, lineup, every player's mix, switches, undo history. Written safely: a crash can't leave a half-written file.</span></div>
+  </div>
+  <div class="cols" style="margin-top:18px">
+    <div class="small"><b>Saved:</b> mix levels per player, lineup, channel on/off, mute groups, USB recording toggle, mixer IP.</div>
+    <div class="small"><b>Also a log</b> (<code>xr18-rehearsal.log</code>) of every command sent. Handy to send to Dan if something acts up.</div>
+  </div>
+</section>
+
+<!-- 20 -->
+<section class="slide">
+  <div class="kicker">Switches</div>
+  <h2>Channel on/off, room-mic power and mute groups</h2>
+  <div class="cols3" style="margin-top:12px">
+    <div class="card"><h3>Channel checkboxes</h3><span class="small">One per channel, applied instantly, undoable. <b>Revert to default</b> turns them all on. Picking one singer turns ch 8 off; "Both" turns 7 and 8 on.</span></div>
+    <div class="card"><h3>Room mics (15-16) and 48V</h3><span class="small">They're condensers and need 48V. To avoid a <b>pop in your ears</b>:<br><b>On:</b> 48V on → wait 2 s → unmute<br><b>Off:</b> mute → 48V off</span></div>
+    <div class="card"><h3>Mute groups</h3><span class="small">Silence a section in every mix at once without touching the checkboxes. Unmute and it's exactly as before.</span></div>
+  </div>
+  <table style="margin-top:18px">
+    <tr><th>Group</th><th>Silences</th><th>Channels</th><th>Typical use</th></tr>
+    <tr><td>1</td><td>Talkback &amp; Amb</td><td>4, 15-16</td><td>Cut the chatter and room noise</td></tr>
+    <tr><td>2</td><td>Drums</td><td>9-12</td><td>Drummer swap, sticks clattering</td></tr>
+    <tr><td>3</td><td>Guitar</td><td>5-6</td><td>Tuning, pedal fiddling</td></tr>
+    <tr><td>4</td><td>Bass</td><td>1-3</td><td>Tuning, cable swaps</td></tr>
+  </table>
+</section>
+
+<!-- 21 -->
+<section class="slide">
+  <div class="kicker">Duet mode</div>
+  <h2>Two singers, two separate mixes</h2>
+  <div class="cols" style="margin-top:14px;align-items:center">
+    <svg viewBox="0 0 540 300" width="540" height="300">
+      <g font-size="16">
+        <text x="135" y="24" text-anchor="middle" font-weight="700" fill="#5f6672" font-size="13" letter-spacing="1">ONE SINGER</text>
+        <rect x="35" y="40" width="200" height="56" rx="10" fill="#fbeef6" stroke="#f0c3de"/><text x="135" y="65" text-anchor="middle" font-weight="650">Aux 5-6 linked</text><text x="135" y="84" text-anchor="middle" font-size="13" fill="#5f6672">one stereo mix</text>
+        <line x1="135" y1="96" x2="135" y2="140" stroke="#d6409f" stroke-width="3"/>
+        <rect x="55" y="140" width="160" height="44" rx="22" fill="#d6409f"/><text x="135" y="168" text-anchor="middle" fill="#fff" font-weight="650">Ben or Barak</text>
+        <text x="135" y="220" text-anchor="middle" font-size="14" fill="#5f6672">Mic: Vox 1 (ch 7)</text>
+        <text x="135" y="240" text-anchor="middle" font-size="14" fill="#5f6672">ch 8 switched off</text>
+
+        <text x="405" y="24" text-anchor="middle" font-weight="700" fill="#5f6672" font-size="13" letter-spacing="1">"BOTH"</text>
+        <rect x="305" y="40" width="95" height="56" rx="10" fill="#fbeef6" stroke="#f0c3de"/><text x="352" y="65" text-anchor="middle" font-weight="650">Aux 5</text><text x="352" y="84" text-anchor="middle" font-size="13" fill="#5f6672">mono</text>
+        <rect x="410" y="40" width="95" height="56" rx="10" fill="#eef1fc" stroke="#c9d2f5"/><text x="457" y="65" text-anchor="middle" font-weight="650">Aux 6</text><text x="457" y="84" text-anchor="middle" font-size="13" fill="#5f6672">mono</text>
+        <line x1="352" y1="96" x2="352" y2="140" stroke="#d6409f" stroke-width="3"/><line x1="457" y1="96" x2="457" y2="140" stroke="#3e63dd" stroke-width="3"/>
+        <rect x="310" y="140" width="85" height="44" rx="22" fill="#d6409f"/><text x="352" y="168" text-anchor="middle" fill="#fff" font-weight="650">Ben</text>
+        <rect x="415" y="140" width="85" height="44" rx="22" fill="#3e63dd"/><text x="457" y="168" text-anchor="middle" fill="#fff" font-weight="650">Barak</text>
+        <text x="405" y="220" text-anchor="middle" font-size="14" fill="#5f6672">Mics: ch 7 + ch 8 both on</text>
+        <text x="405" y="240" text-anchor="middle" font-size="14" fill="#5f6672">each singer's own saved mix</text>
+      </g>
+    </svg>
+    <div>
+      <ul>
+        <li>Pick <b>Both</b> under Vocals: Aux 5-6 is unlinked, ch 8 switches on, Ben's mix loads on Aux 5 and Barak's on Aux 6</li>
+        <li><b>Physically:</b> Ben's in-ear pack on Aux 5, Barak's on Aux 6</li>
+        <li>Pick one name again: 5-6 re-link into stereo and that singer's mix loads</li>
+        <li>Each singer's levels are saved under their name and follow them between solo and duet</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 22 -->
+<section class="slide">
+  <div class="kicker">Recording</div>
+  <h2>Every input, straight to the laptop over USB</h2>
+  <div class="cols" style="margin-top:12px">
+    <div>
+      <ul>
+        <li>The XR18 is an 18-in / 18-out USB audio interface. It has no USB-stick recorder, so it records into a DAW (Reaper, Logic, Ableton, Audacity…)</li>
+        <li><b>Record all inputs via USB</b> (on by default): USB 1-16 carry the 16 inputs, 17-18 the E-Pad</li>
+        <li>Recorded <b>raw</b>, before any filter, so you can mix it later however you like</li>
+        <li>Untick it to set the USB routing by hand in X AIR Edit instead</li>
+        <li>Windows needs the Behringer X-USB ASIO driver. Mac works out of the box</li>
+      </ul>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card warn"><h3>The catch: backing track</h3><span class="small">Ch 13-14 play the computer via USB return 1-2. USB sends 13-14 still carry the <b>empty</b> input jacks 13-14. To have the backing track in the recording, record the computer playback inside the DAW itself.</span></div>
+      <div class="card soft"><h3>Kept in place</h3><span class="small">If someone changes the USB routing in X AIR Edit, <b>Check mixer</b> flags it and <b>Sync &amp; check</b> puts it back.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 23 -->
+<section class="slide">
+  <div class="kicker">The app</div>
+  <div style="display:grid;grid-template-columns:400px 1fr;gap:40px;align-items:start">
+    <img class="shot" src="rehearsal-control-mac.png" alt="Rehearsal Control window">
+    <div>
+      <h2>One window, top to bottom</h2>
+      <div class="kv" style="grid-template-columns:150px 1fr;margin-top:12px;font-size:17px">
+        <div>Mixer IP + dot</div><div>Where the mixer is, and whether it's answering</div>
+        <div>Who is playing</div><div>Lineup pickers. A click = save old mix, load new one</div>
+        <div>Channels</div><div>Colour-coded on/off per channel, same colours as the mixer</div>
+        <div>Mute groups</div><div>Talkback &amp; Amb · Drums · Guitar · Bass</div>
+        <div>Outputs</div><div>Which jack carries whose mix right now + USB recording toggle</div>
+        <div>Buttons</div><div>Undo · Redo · Set up mixer… · Sync &amp; check · Check mixer</div>
+        <div>Message area</div><div>What just happened, in plain words</div>
+      </div>
+      <p class="note small" style="margin-top:14px">All mixer traffic runs in the background, so the window never freezes if the mixer is slow or out of range.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 24 -->
+<section class="slide">
+  <div class="kicker">Three buttons, three jobs</div>
+  <h2>Set up vs Sync vs Check</h2>
+  <table style="margin-top:14px;font-size:17px">
+    <tr><th style="width:200px">Button</th><th>What it does</th><th style="width:240px">Touches mixes?</th><th style="width:200px">When</th></tr>
+    <tr><td><b>Check mixer</b></td><td>Reads every setting back (names, colours, links, routing, 48V, low-cuts, pans, taps, mute groups) and lists what differs</td><td>No. Changes nothing</td><td>Start of every session</td></tr>
+    <tr><td><b>Sync &amp; check</b></td><td>Same read, then writes <b>only</b> the values that differ, then checks again</td><td>No. Mixes and faders left alone</td><td>Check found something</td></tr>
+    <tr><td><b>Set up mixer…</b></td><td>Writes the <b>whole</b> setup, then loads the current lineup's saved mixes. Asks first</td><td>Yes. Reloads the current players' mixes</td><td>First time, or after a scene reset</td></tr>
+  </table>
+  <div class="cols" style="margin-top:22px">
+    <div class="card soft small"><b>Day to day you don't need Set up.</b> Lineup picks, checkboxes and mute groups go to the mixer the moment you click.</div>
+    <div class="card small"><b>What "drift" looks like:</b> someone renames a channel or flips 48V in X AIR Edit. Check lists it; Sync puts it back.</div>
+  </div>
+</section>
+
+<!-- 25 -->
+<section class="slide">
+  <div class="kicker">Safety nets</div>
+  <h2>Built so nobody gets a blast in their ears</h2>
+  <table style="margin-top:12px;font-size:17px">
+    <tr><th style="width:300px">Situation</th><th>What the app does</th></tr>
+    <tr><td>Loading a mix</td><td>Master to silence → sends → master up to the saved level. No burst at the old level</td></tr>
+    <tr><td>Room mics on / off</td><td>48V first, 2 s settle, then unmute. Off: mute, then 48V off. No pop</td></tr>
+    <tr><td>Linked stereo pairs</td><td>Pan set only on the odd channel and kept centre (it works as balance), so stereo stays stereo</td></tr>
+    <tr><td>Mixer not answering on a swap</td><td>Old mix not overwritten; new mix loads automatically when the mixer is back</td></tr>
+    <tr><td>Mixer gone when you close the app</td><td>Closes instantly, keeps the last good save</td></tr>
+    <tr><td>Full setup</td><td>Asks for confirmation first: it resets names, routing and levels</td></tr>
+    <tr><td>Something crashes in the background</td><td>The window shows the error, the full details go into the log file</td></tr>
+  </table>
+</section>
+
+<!-- 26 -->
+<section class="slide">
+  <div class="kicker">Under the hood (for the curious)</div>
+  <h2>How the app talks to the mixer</h2>
+  <div class="cols" style="margin-top:10px">
+    <div>
+      <ul class="small">
+        <li><b>OSC over UDP, port 10024</b>: the same remote protocol the X AIR apps use. Messages look like <code>/ch/05/mix/03/level 0.75</code></li>
+        <li><b>Find</b> broadcasts <code>/xinfo</code>; the mixer replies with IP, name, model, firmware</li>
+        <li>Faders are 0-1 on the wire; the app converts dB both ways using the X-Air fader curve</li>
+        <li>Sends are paced 2 ms apart so the mixer isn't flooded</li>
+        <li>One background worker thread does all mixer traffic; the window stays responsive</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="small">
+        <li><b>Python, standard library only</b>: nothing to install on the laptop except Python itself</li>
+        <li>The whole setup lives in one file (<code>plan.py</code>) as data. The patch sheet and setup map are generated from it</li>
+        <li><b>Fake XR18 simulator</b> for testing without the hardware</li>
+        <li>Tests run on Mac, Windows and Linux on every change (GitHub Actions)</li>
+        <li>Command line too: <code>--find</code>, <code>apply</code>, <code>check</code>, <code>lineup</code>, <code>--dry-run</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="card soft small" style="margin-top:14px">Plan file → commands → mixer. Check mode runs the same list as questions instead of commands, which is why Check and Set up can never disagree about what "correct" means.</div>
+</section>
+
+<!-- 27 -->
+<section class="slide">
+  <div class="kicker">Boundaries</div>
+  <h2>What the app doesn't touch</h2>
+  <div class="cols" style="margin-top:12px">
+    <div class="card"><h3>Still done by hand (X AIR Edit / the rack)</h3>
+      <ul class="small">
+        <li><b>Gain / trim</b> on each preamp: set levels at the mixer</li>
+        <li><b>EQ, compression, gate, effects</b>: untouched</li>
+        <li><b>Hi-Z</b> on channels 1-2: must be off, check by hand</li>
+        <li><b>Cables</b>: the app can't see them. Use the patch sheet</li>
+        <li>Your in-ear pack volume knob</li>
+      </ul></div>
+    <div class="card"><h3>Not remembered per player</h3>
+      <ul class="small">
+        <li>Only <b>levels</b> are saved per player (17 inputs + master)</li>
+        <li>Pans are part of the fixed setup, the same for everyone</li>
+        <li>Any EQ on a bus is shared by whoever holds that role</li>
+      </ul></div>
+  </div>
+  <p class="note" style="margin-top:16px">Rule for everyone: <b>touch only your own aux sends</b>. Channel faders are the drummer's mix; channel settings are the shared setup.</p>
+</section>
+
+<!-- 28 -->
+<section class="slide">
+  <div class="kicker">Rehearsal day</div>
+  <h2>Checklist</h2>
+  <div class="cols" style="margin-top:10px">
+    <div>
+      <div class="steps" style="flex-direction:column;gap:9px;margin-top:0">
+        <div class="step" style="padding:10px 14px"><b>1 ·</b> Patch per the sheet: talkback on 4, jacks 13-14 empty</div>
+        <div class="step" style="padding:10px 14px"><b>2 ·</b> Laptop on the XR18 Wi-Fi, open the app, dot green</div>
+        <div class="step" style="padding:10px 14px"><b>3 ·</b> <b>Check mixer</b>. Empty list = good. Otherwise <b>Sync &amp; check</b></div>
+        <div class="step" style="padding:10px 14px"><b>4 ·</b> Set today's lineup in <b>Who is playing</b></div>
+        <div class="step" style="padding:10px 14px"><b>5 ·</b> Room mics plugged in? Tick 15-16</div>
+      </div>
+    </div>
+    <div>
+      <div class="steps" style="flex-direction:column;gap:9px;margin-top:0">
+        <div class="step" style="padding:10px 14px"><b>6 ·</b> Hi-Z off on 1-2 (X AIR Edit)</div>
+        <div class="step" style="padding:10px 14px"><b>7 ·</b> Computer outputs to USB 1-2; backing track centred and stereo</div>
+        <div class="step" style="padding:10px 14px"><b>8 ·</b> Recording? DAW on the XR18 as interface, 18 inputs</div>
+        <div class="step" style="padding:10px 14px"><b>9 ·</b> Play. Swap freely. Tweak your own sends</div>
+        <div class="step" style="padding:10px 14px"><b>10 ·</b> Close the app normally at the end</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 29 -->
+<section class="slide">
+  <div class="kicker">Status</div>
+  <h2>Where it stands</h2>
+  <div class="cols" style="margin-top:12px">
+    <div class="card ok"><h3>Done</h3>
+      <ul class="small">
+        <li>Lineup swaps with saved mixes, duet mode, undo/redo</li>
+        <li>Channel switches, room-mic 48V sequencing, mute groups</li>
+        <li>USB recording routing</li>
+        <li>Check / Sync / Set up, connection dot, log file</li>
+        <li>Desktop launchers for Mac and Windows</li>
+        <li>Tested against a simulated XR18 on all three OSes</li>
+      </ul></div>
+    <div class="card warn"><h3>Still to do (needs the real mixer)</h3>
+      <ul class="small">
+        <li>First real connection: run <b>Check mixer</b> and fix any address the real firmware rejects</li>
+        <li>Swap a guitarist and back, confirm the first mix returns</li>
+        <li>Print the new patch sheet and tape it to the rack</li>
+        <li>After the session, send Dan the log file</li>
+      </ul></div>
+  </div>
+  <p class="note" style="margin-top:16px">Ideas or something feels wrong? Tell Dan. The setup is one data file; changes are quick.</p>
+</section>
+
+<!-- 30 -->
+<section class="slide">
+  <div class="kicker">Glossary</div>
+  <h2>Words you'll hear</h2>
+  <div class="cols" style="margin-top:8px;font-size:17px;gap:28px">
+    <div class="kv" style="grid-template-columns:150px 1fr;font-size:16.5px">
+      <div>Aux / bus</div><div>An extra mix output. Ours are in-ear mixes</div>
+      <div>Send</div><div>How much of a channel goes into a given aux mix</div>
+      <div>Pre-fader</div><div>The send ignores the channel fader</div>
+      <div>Master</div><div>Overall volume of one mix</div>
+      <div>Link</div><div>Two channels or buses act as one stereo pair</div>
+      <div>Mute group</div><div>One switch that silences a set of channels</div>
+      <div>48V / phantom</div><div>Power sent down the cable to condenser mics</div>
+    </div>
+    <div class="kv" style="grid-template-columns:150px 1fr;font-size:16.5px">
+      <div>Low-cut / HPF</div><div>Removes everything below a frequency</div>
+      <div>High-cut / LPF</div><div>Removes everything above a frequency</div>
+      <div>DI</div><div>Direct line from an instrument or preamp, no mic</div>
+      <div>Hi-Z</div><div>Input mode for passive guitars/basses plugged straight in</div>
+      <div>USB return</div><div>Audio coming from the laptop into the mixer</div>
+      <div>OSC</div><div>The network language the app and mixer speak</div>
+      <div>DAW</div><div>Recording software (Reaper, Logic…)</div>
+    </div>
+  </div>
+</section>
+
+</div></div>
+<div id="bar"></div><div id="hud"></div>
+<script>
+// ---------- filter curves (2nd-order, illustration) ----------
+const NS = "http://www.w3.org/2000/svg";
+function el(svg, tag, attrs, text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;svg.appendChild(e);return e;}
+const TICKS=[[20,"20"],[50,"50"],[100,"100"],[200,"200"],[500,"500"],[1000,"1k"],[2000,"2k"],[5000,"5k"],[10000,"10k"],[20000,"20k"]];
+function xOf(f,x0,w){return x0+w*Math.log10(f/20)/3;}
+
+function filterChart(id, type, fc, color){
+  const svg=document.getElementById(id), x0=40, w=500, y0=20, h=180, minDb=-36;
+  const yOf=db=>y0+h*(-Math.max(db,minDb))/(-minDb);
+  // grid
+  for(const [f,l] of TICKS){const x=xOf(f,x0,w);el(svg,"line",{x1:x,x2:x,y1:y0,y2:y0+h,stroke:"#eef0f3"});el(svg,"text",{x:x,y:y0+h+18,"text-anchor":"middle","font-size":12,fill:"#5f6672"},l);}
+  for(const db of [0,-12,-24,-36]){const y=yOf(db);el(svg,"line",{x1:x0,x2:x0+w,y1:y,y2:y,stroke:"#eef0f3"});el(svg,"text",{x:x0-6,y:y+4,"text-anchor":"end","font-size":12,fill:"#5f6672"},db);}
+  el(svg,"text",{x:x0+w/2,y:y0+h+36,"text-anchor":"middle","font-size":12,fill:"#9aa1ab"},"frequency (Hz) →   level (dB) ↑");
+  // curve
+  let d="", area="";
+  for(let i=0;i<=300;i++){const f=20*Math.pow(1000,i/300);const r=type==="hp"?fc/f:f/fc;const db=-10*Math.log10(1+Math.pow(r,4));const x=xOf(f,x0,w),y=yOf(db);d+=(i?"L":"M")+x.toFixed(1)+","+y.toFixed(1);}
+  const xc=xOf(fc,x0,w);
+  // cut zone
+  if(type==="hp") el(svg,"rect",{x:x0,y:y0,width:xc-x0,height:h,fill:"#d64545",opacity:.07});
+  else el(svg,"rect",{x:xc,y:y0,width:x0+w-xc,height:h,fill:"#d64545",opacity:.07});
+  el(svg,"path",{d:d,fill:"none",stroke:color,"stroke-width":3.5,"stroke-linejoin":"round"});
+  el(svg,"line",{x1:xc,x2:xc,y1:y0,y2:y0+h,stroke:color,"stroke-dasharray":"4 4","stroke-width":1.5});
+  el(svg,"circle",{cx:xc,cy:yOf(-3),r:5,fill:color});
+  el(svg,"text",{x:xc+(type==="hp"?8:-8),y:yOf(-3)+22,"text-anchor":type==="hp"?"start":"end","font-size":13,"font-weight":650,fill:color},"cutoff "+(fc>=1000?fc/1000+" kHz":fc+" Hz"));
+  el(svg,"text",{x:type==="hp"?x0+8:x0+w-8,y:y0+h-10,"text-anchor":type==="hp"?"start":"end","font-size":13,fill:"#b03a3a","font-weight":650},type==="hp"?"cut":"cut");
+  el(svg,"text",{x:type==="hp"?x0+w-8:x0+8,y:y0+16,"text-anchor":type==="hp"?"end":"start","font-size":13,fill:"#1a7f4b","font-weight":650},"passes untouched");
+}
+filterChart("hpf","hp",100,"#2f6fde");
+filterChart("lpf","lp",5000,"#8a5cd1");
+
+// ---------- instrument ranges vs our low-cuts ----------
+(function(){
+  const svg=document.getElementById("ranges"), x0=210, w=900, top=18, rowH=40;
+  const rows=[ // label, color, lo, hi, cut
+    ["Bass DI 1-2","#30a46c",40,5000,null],["Bass Cab (1)","#30a46c",40,5000,50],["Kick (9)","#e0c400",45,6000,30],
+    ["Gtr 1-2 (5-6)","#e5484d",80,6000,80],["Snare (10)","#e0c400",120,10000,80],["Amb L/R (15-16)","#9aa1ab",30,18000,80],
+    ["Vox 1-2 (7-8)","#d6409f",90,12000,100],["Talkback (4)","#9aa1ab",100,8000,120],["OH L/R (11-12)","#e0c400",150,18000,120],
+    ["Computer, E-Pad","#05a2c2",20,20000,null]];
+  const bottom=top+rows.length*rowH;
+  for(const [f,l] of TICKS){const x=xOf(f,x0,w);el(svg,"line",{x1:x,x2:x,y1:top-6,y2:bottom,stroke:"#eef0f3"});el(svg,"text",{x:x,y:bottom+20,"text-anchor":"middle","font-size":13,fill:"#5f6672"},l);}
+  el(svg,"text",{x:x0+w/2,y:bottom+42,"text-anchor":"middle","font-size":13,fill:"#9aa1ab"},"frequency (Hz) · low notes on the left, cymbals and air on the right");
+  rows.forEach(([label,color,lo,hi,cut],i)=>{
+    const y=top+i*rowH, cy=y+rowH/2;
+    el(svg,"text",{x:x0-14,y:cy+5,"text-anchor":"end","font-size":15,"font-weight":600,fill:"#16181d"},label);
+    el(svg,"rect",{x:xOf(lo,x0,w),y:cy-9,width:xOf(hi,x0,w)-xOf(lo,x0,w),height:18,rx:9,fill:color,opacity:.75});
+    if(cut){const xc=xOf(cut,x0,w);
+      el(svg,"rect",{x:x0,y:cy-15,width:xc-x0,height:30,fill:"#d64545",opacity:.13});
+      el(svg,"line",{x1:xc,x2:xc,y1:cy-16,y2:cy+16,stroke:"#d64545","stroke-width":2.5});
+      el(svg,"text",{x:xc+6,y:cy-11,"font-size":12,"font-weight":700,fill:"#b03a3a"},cut+" Hz");
+    } else el(svg,"text",{x:x0+w+8,y:cy+5,"font-size":12,fill:"#5f6672"},"no cut");
+  });
+})();
+
+// ---------- navigation ----------
+const slides=[...document.querySelectorAll(".slide")], deck=document.getElementById("deck"), hud=document.getElementById("hud"), bar=document.getElementById("bar");
+slides.forEach((s,i)=>{if(!s.classList.contains("title")&&!s.classList.contains("section")){const f=document.createElement("div");f.className="foot";f.innerHTML="<span>MasTool XR18 rehearsal rig</span><span>"+(i+1)+" / "+slides.length+"</span>";s.appendChild(f);}});
+let cur=Math.min(Math.max(parseInt(location.hash.slice(1))||1,1),slides.length)-1;
+function show(n){cur=Math.min(Math.max(n,0),slides.length-1);slides.forEach((s,i)=>s.classList.toggle("active",i===cur));hud.textContent=cur===0?"← → or click to navigate · F fullscreen":"";bar.style.width=((cur+1)/slides.length*100)+"%";history.replaceState(null,"","#"+(cur+1));}
+function fit(){const s=Math.min(innerWidth/1280,innerHeight/720);deck.style.transform="scale("+s+")";}
+addEventListener("resize",fit);
+addEventListener("keydown",e=>{
+  if(["ArrowRight","PageDown"," ","Enter"].includes(e.key)){e.preventDefault();show(cur+1);}
+  else if(["ArrowLeft","PageUp","Backspace"].includes(e.key)){e.preventDefault();show(cur-1);}
+  else if(e.key==="Home")show(0);else if(e.key==="End")show(slides.length-1);
+  else if(e.key==="f"||e.key==="F"){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
+});
+document.getElementById("stage").addEventListener("click",e=>{show(e.clientX>innerWidth/2?cur+1:cur-1);});
+addEventListener("hashchange",()=>show((parseInt(location.hash.slice(1))||1)-1));
+fit();show(cur);
+</script>
+</body>
+</html>
