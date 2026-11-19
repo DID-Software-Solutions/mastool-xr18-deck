@@ -27,4 +27,4 @@ After editing `index.html`, rebuild the PDF with Chrome:
   --print-to-pdf="$PWD/xr18-rehearsal.pdf" "file://$PWD/index.html"
 ```
 
-Pushing to `main` updates the live site within a minute or two.
+Every change is pushed straight to `main` (no PRs) and is live within a minute or two.
