@@ -379,7 +379,7 @@ svg text{font-family:"Segoe UI",system-ui,-apple-system,sans-serif}
       <tr><th>Channel</th><th>Cut</th><th>Why</th></tr>
       <tr><td>Kick</td><td>30 Hz</td><td>Only sub-rumble nobody hears. Thump (~50-100 Hz) untouched</td></tr>
       <tr><td>Bass Cab</td><td>50 Hz</td><td>Lows come from the DIs. The cab mic adds grit</td></tr>
-      <tr><td>Bass DI 1-2</td><td>off</td><td>The foundation. Low E is 41 Hz, keep all of it</td></tr>
+      <tr><td>Bass DI 1-2</td><td>off</td><td>The foundation. We tune to D: low D is 37 Hz, keep all of it</td></tr>
       <tr><td>Gtr 1-2</td><td>80 Hz</td><td>Lowest guitar note is 82 Hz. Below that is only mud and bass bleed</td></tr>
       <tr><td>Snare</td><td>80 Hz</td><td>Body is 150-250 Hz. Below is kick and bass bleed</td></tr>
       <tr><td>Amb L/R</td><td>80 Hz</td><td>Room rumble, AC, footsteps</td></tr>
@@ -764,7 +764,7 @@ filterChart("lpf","lp",5000,"#8a5cd1");
 (function(){
   const svg=document.getElementById("ranges"), x0=210, w=900, top=18, rowH=40;
   const rows=[ // label, color, lo, hi, cut
-    ["Bass DI 1-2","#30a46c",40,5000,null],["Bass Cab (1)","#30a46c",40,5000,50],["Kick (9)","#e0c400",45,6000,30],
+    ["Bass DI 1-2","#30a46c",36,5000,null],["Bass Cab (1)","#30a46c",36,5000,50],["Kick (9)","#e0c400",45,6000,30],
     ["Gtr 1-2 (5-6)","#e5484d",80,6000,80],["Snare (10)","#e0c400",120,10000,80],["Amb L/R (15-16)","#9aa1ab",30,18000,80],
     ["Vox 1-2 (7-8)","#d6409f",90,12000,100],["Talkback (4)","#9aa1ab",100,8000,120],["OH L/R (11-12)","#e0c400",150,18000,120],
     ["Computer, E-Pad","#05a2c2",20,20000,null]];
