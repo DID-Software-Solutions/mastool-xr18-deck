@@ -36,3 +36,13 @@ C="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
 Every change is pushed straight to `main` (no PRs) and is live within a minute or two.
+
+## Documentation
+
+| Doc | What it covers |
+|---|---|
+| [docs/slide-outline.md](docs/slide-outline.md) | Every slide with its purpose and the app feature it describes, English and Hebrew numbers |
+| [docs/editing.md](docs/editing.md) | How the deck is built, editing and translating slides, PDFs, local preview, deploy |
+| [docs/link-map.md](docs/link-map.md) | How the deck, the app, the site and the PDFs relate, and what to update when the app changes |
+
+See also [CONTRIBUTING.md](CONTRIBUTING.md).
