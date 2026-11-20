@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MasTool XR18: דף עזר ליום חזרה</title>
+<style>
+:root{
+  --ink:#16181d;--muted:#5f6672;--line:#d9dde3;--head:#f1f3f6;--accent:#2f6fde;--soft:#eef3fd;
+  --green:#30a46c;--red:#e5484d;--yellow:#f5d90a;--blue:#3e63dd;--magenta:#d6409f;--cyan:#05a2c2;--white:#c9ced6;
+  --warn:#b54708;--warnbg:#fff6ed;--ok:#1a7f4b;--okbg:#ecfaf2;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#1b1d22;color:var(--ink);font:16px/1.38 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,"Noto Sans Hebrew",sans-serif}
+b,strong{font-weight:650}
+.page{background:#fff;max-width:1180px;margin:0 auto;padding:22px 28px 18px;position:relative}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:3px solid var(--accent);padding-bottom:8px;margin-bottom:12px}
+.kicker{color:var(--accent);font-size:13px;font-weight:700;margin-bottom:2px}
+h1{font-size:34px;line-height:1.1;margin:0;}
+.strip{display:flex;gap:5px;width:190px}.strip span{flex:1;height:9px;border-radius:3px}
+#lang{font:600 14px system-ui;color:#2f6fde;background:#fff;border:1px solid #9db8ee;border-radius:99px;padding:4px 14px;text-decoration:none;white-space:nowrap}
+.top .r{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.grid{display:grid;grid-template-columns:1.12fr 1.05fr 1fr;gap:12px}
+.grid>*,.fix>*{min-width:0}
+.card{border:1px solid var(--line);border-radius:12px;padding:11px 14px;background:#fff}
+.card.soft{background:var(--soft);border-color:#d3e0fa}
+.card.warn{background:var(--warnbg);border-color:#f9d6b4}
+.card.ok{background:var(--okbg);border-color:#bfe8d1}
+h2{margin:0 0 7px;font-size:19px;line-height:1.2;display:flex;align-items:center;gap:9px}
+.num{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.card.warn .num{background:var(--warn)}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+ol.steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;margin:0 0 7px;font-size:17px;line-height:1.3}
+ol.steps li:before{content:counter(s);flex:none;width:24px;height:24px;border-radius:7px;background:var(--head);border:1px solid var(--line);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.note{color:var(--muted);font-size:14px;line-height:1.35;margin:6px 0 0}
+.tag{white-space:nowrap;display:inline-block;padding:0 8px;border-radius:99px;font-size:13px;font-weight:650;background:var(--head);color:#3b414b}
+.sw{display:inline-block;width:13px;height:13px;border-radius:3px;margin-left:7px;vertical-align:-1px;border:1px solid #0002}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{border:1px solid var(--line);padding:3px 8px;text-align:right;vertical-align:top}
+th{background:var(--head);font-size:12px;color:#3b414b}
+ul{margin:0;padding:0 20px 0 0;}li{margin:3px 0}
+.small{font-size:15px}
+.fix{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.fix .card{padding:9px 13px}
+.fix h3{margin:0 0 4px;font-size:16.5px;line-height:1.2;color:var(--warn)}
+.fix p{margin:0;font-size:14.5px;line-height:1.35}
+.fix ul{font-size:14.5px;line-height:1.33}
+.foot{display:flex;line-height:1.3;justify-content:space-between;gap:16px;margin-top:8px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:7px}
+.foot b{color:var(--ink)}
+kbd,code{font:13.5px ui-monospace,Menlo,monospace;background:var(--head);border-radius:4px;padding:0 5px}
+code,kbd,.l{direction:ltr;unicode-bidi:isolate}.l{white-space:nowrap}
+@media screen and (max-width:900px){
+  html{font-size:17px}
+  .grid,.fix{grid-template-columns:1fr}
+  .top{flex-direction:column;align-items:flex-start}
+  .page{padding:16px 14px}
+  h1{font-size:28px}
+  .foot{flex-direction:column}
+}
+@media print{
+  @page{size:A4 landscape;margin:0}
+  html,body{background:#fff;width:297mm;height:210mm;overflow:hidden}
+  .page{width:297mm;height:210mm;max-width:none;margin:0;padding:8mm 10mm 6mm;overflow:hidden}
+  #lang{display:none}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top">
+    <div>
+      <div class="kicker">MasTool · מערך החזרות · דף עזר</div>
+      <h1>יום חזרה בעמוד אחד</h1>
+    </div>
+    <div class="r">
+      <a id="lang" href="../" lang="en">English</a>
+      <div class="strip">
+        <span style="background:var(--green)"></span><span style="background:var(--white)"></span><span style="background:var(--red)"></span>
+        <span style="background:var(--magenta)"></span><span style="background:var(--blue)"></span><span style="background:var(--yellow)"></span>
+        <span style="background:var(--cyan)"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card soft">
+      <h2><span class="num">1</span>לפני שמנגנים <span class="tag">לפטופ</span></h2>
+      <ol class="steps">
+        <li><span>מתחברים ל-Wi-Fi של ה-<b>XR18</b>.</span></li>
+        <li><span>פותחים <b>XR18 Rehearsal</b>. לוחצים <b>Find</b>. הנקודה הופכת <b style="color:var(--ok)">ירוקה</b>.</span></li>
+        <li><span>לוחצים <b>Check mixer</b>. רשימה ריקה = טוב. אחרת <b>Sync &amp; check</b>.</span></li>
+        <li><span>בוחרים את נגני היום ב-<b>Who is playing</b>.</span></li>
+        <li><span>מיקרופוני החדר מחוברים? מסמנים ערוצים <b class="l">15-16</b>.</span></li>
+      </ol>
+      <p class="note">ה-gain מכוון לכל כניסה ב-X AIR Edit. המחשב מוציא ל-<span class="l">USB 1-2</span>. בסוף סוגרים את האפליקציה כרגיל.</p>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">2</span>מי שומע מה</h2>
+      <table>
+        <tr><th>mix</th><th>שקע</th><th>מי</th></tr>
+        <tr><td><span class="sw" style="background:var(--green)"></span><b>בס</b></td><td><span class="l">Aux 1-2</span></td><td><b>אור</b>, תמיד</td></tr>
+        <tr><td><span class="sw" style="background:var(--red)"></span><b>גיטרה</b></td><td><span class="l">Aux 3-4</span></td><td>דן או ג'וני</td></tr>
+        <tr><td><span class="sw" style="background:var(--magenta)"></span><b>שירה</b></td><td><span class="l">Aux 5-6</span></td><td>בן או ברק</td></tr>
+        <tr><td><span class="sw" style="background:var(--yellow)"></span><b>תופים</b></td><td><span class="l">Main L/R</span></td><td>דניאל או נדב</td></tr>
+      </table>
+      <p class="note"><b>דואט (Both):</b> בן על <span class="l">Aux 5</span>, ברק על <span class="l">Aux 6</span>. ה-backing track וה-E-Pad בכל mix.</p>
+      <h2 style="margin-top:12px"><span class="num">3</span>מחליפים נגן</h2>
+      <ul class="small">
+        <li>לוחצים על השם החדש. האפליקציה עושה את השאר.</li>
+        <li>היא שומרת את ה-mix של הנגן הקודם וטוענת את שלו.</li>
+        <li>מחליפים בחזרה וה-mix הראשון חוזר בדיוק.</li>
+        <li>ה-mix של כל השאר לא זז.</li>
+      </ul>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card ok">
+        <h2><span class="num">4</span>ה-mix שלך</h2>
+        <ul class="small">
+          <li>משנים באפליקציית <b>X AIR</b> בטלפון או בטאבלט.</li>
+          <li>נוגעים רק ב-<b>aux sends שלכם</b>.</li>
+          <li>הכול נשמר לבד: כל <span class="l">10</span> שניות, בכל החלפה ובסגירת האפליקציה. אין כפתור Save.</li>
+          <li><b>מתופף:</b> ה-mix שלך הוא ה-faders של הערוצים. כל השאר לא נוגעים בהם.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2><span class="num">5</span>Mute groups ומיקרופוני חדר</h2>
+        <p class="small" style="margin:0 0 5px"><b>Mute groups:</b> 1 Talkback &amp; Amb · 2 Drums · 3 Guitar · 4 Bass. מבטלים השתקה וחוזרים בדיוק למצב הקודם. הזמרים לא בשום קבוצה.</p>
+        <p class="small" style="margin:0"><b>מיקרופוני חדר (<span class="l">15-16</span>):</b> מסמנים להפעלה. <span class="l">48V</span> והמתנה של <span class="l">2</span> שניות קורים לבד, בלי פופ.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="card warn">
+      <h3>המיקסר לא עונה</h3>
+      <p>הנקודה אדומה. בודקים שהלפטופ ב-Wi-Fi של ה-XR18 ולוחצים <b>Find</b>. החלפה ממתינה וטוענת לבד כשהמיקסר עונה.</p>
+    </div>
+    <div class="card warn">
+      <h3>אין קול באוזניים</h3>
+      <ul>
+        <li>ה-mute group שלך כבוי?</li>
+        <li>הערוץ שלך מסומן?</li>
+        <li>החבילה על השקע שלך, והווליום פתוח?</li>
+        <li>אז לוחצים <b>Check mixer</b>.</li>
+      </ul>
+    </div>
+    <div class="card warn">
+      <h3>mix לא נכון או הגדרות מוזרות</h3>
+      <p>מתקנים את ה-sends שלכם ב-X AIR. זה נשמר. אם שינו הגדרה ידנית: <b>Check mixer</b> ואז <b>Sync &amp; check</b>. <b>Set up mixer…</b> הוא לפעם הראשונה, או אחרי איפוס scene.</p>
+    </div>
+    <div class="card warn">
+      <h3>הקלטה</h3>
+      <p>בוחרים ב-XR18 ככרטיס הקול של ה-DAW (<span class="l">18</span> כניסות). ב-Windows צריך את דרייבר Behringer X-USB ASIO. את ה-backing track מקליטים בתוך ה-DAW.</p>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div><span class="num" style="display:inline-flex;width:22px;height:22px;font-size:12px;vertical-align:middle">7</span> <b>המצגת המלאה:</b> <span class="l">did-software-solutions.github.io/mastool-xr18-deck/he/</span></div>
+    <div><b>האפליקציה:</b> XR18 Rehearsal, מדף ה-releases של הריפו xr18-config (פרטי). משהו לא בסדר? מספרים לדן.</div>
+  </div>
+</div>
+</body>
+</html>
